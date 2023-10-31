@@ -7,7 +7,7 @@ authentication, authorization, and other security features for your applications
 
 
 
-### Basic Spring Security
+###  Spring Security - `Basic`
 
 | Sr.No | Security Type<br/>(repo)   | Youtube Tutorial   | Description |
 |-------|----------------------------|--------------------|-------------|
@@ -15,7 +15,7 @@ authentication, authorization, and other security features for your applications
 | 2     | HTTP Basic Authentication  |                    |             |
 
 
-### Advanced Spring Security
+###  Spring Security - `Advanced`
 
 | Sr.No | Security Type<br/>(repo) | Youtube Tutorial   | Description |
 |-------|--------------------------|--------------------|-------------|
