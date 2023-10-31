@@ -5,8 +5,6 @@ Spring Security is a powerful and highly customizable security framework that pr
 authentication, authorization, and other security features for your applications.
 
 
-
-
 ###  Spring Security - `Basic`
 
 | Sr.No | Security Type<br/>(repo)   | Youtube Tutorial   | Description |
@@ -21,5 +19,12 @@ authentication, authorization, and other security features for your applications
 |-------|--------------------------|--------------------|-------------|
 | 1     | OAuth 2.0                |                    |             |
 | 2     | JWT Authentication       |                    |             |
-| 3     | SAML                     |                    |             |
-| 4     | Kerberos                 |                    |             |
+| 3     | SSO                      |                    |             |
+| 4     | API Based                |                    |             |
+| 5     | SAML                     |                    |             |
+| 6     | Kerberos                 |                    |             |
+
+
+### Setup Project :
+
+Spring Initializer : https://start.spring.io/
