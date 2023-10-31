@@ -15,8 +15,7 @@ authentication, authorization, and other security features for your applications
 | 2     | HTTP Basic Authentication  |                    |             |
 
 
-## Advanced Spring Security
-
+### Advanced Spring Security
 
 | Sr.No | Security Type<br/>(repo) | Youtube Tutorial   | Description |
 |-------|--------------------------|--------------------|-------------|
