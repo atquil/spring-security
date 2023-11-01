@@ -7,10 +7,10 @@ authentication, authorization, and other security features for your applications
 
 ###  Spring Security - `Basic`
 
-| Sr.No | Security Type<br/>(repo)   | Youtube Tutorial   | Description |
-|-------|----------------------------|--------------------|-------------|
-| 1     | Form-based Login           |                    |             |
-| 2     | HTTP Basic Authentication  |                    |             |
+| Sr.No | Security Type<br/>(repo)                                                               | Youtube Tutorial | Contains                 |
+|-------|----------------------------------------------------------------------------------------|------------------|--------------------------|
+| 1     | [HTTP Basic Authentication](https://github.com/atquil/spring-security/tree/basic-auth) |                  | Setup + Postman API call |
+| 2     | Form based login                                                                       |                  |                          |
 
 
 ###  Spring Security - `Advanced`
