@@ -15,6 +15,8 @@ authentication, authorization, and other security features for your applications
 
 ###  Spring Security - `Advanced`
 
+OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifies how tokens are transferred, while JWT defines a token format
+
 | Sr.No | Security Type<br/>(repo) | Youtube Tutorial   | Description |
 |-------|--------------------------|--------------------|-------------|
 | 1     | OAuth 2.0                |                    |             |
