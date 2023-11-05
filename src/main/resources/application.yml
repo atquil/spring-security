@@ -1,0 +1,3 @@
+rsa:
+  rsa-public-key: classpath:certs/publicKey.pem
+  rsa-private-key: classpath:certs/private.pem

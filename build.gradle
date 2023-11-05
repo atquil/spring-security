@@ -27,13 +27,13 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-    //Json web token dependency
-  //  implementation 'org.springframework.boot:spring-boot-starter-security'
-  //  implementation 'io.jsonwebtoken:jjwt:0.9.1'
-
-    //Another tutorial:
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    //Test
+    // https://mvnrepository.com/artifact/org.springframework.security/spring-security-test
+    testImplementation 'org.springframework.security:spring-security-test'
+
 }
 
 tasks.named('test') {
