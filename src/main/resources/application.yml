@@ -1,0 +1,15 @@
+# Need to create client credential on respective application
+
+### Please use your own client-id and client scerete
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: 599c29a5b22730b83088
+            client-secret: 3696bf549bfacc9b1d6072c446b63b5e0cf05706
+          google:
+            client-id: 796876257612-inmd2pr3gmni4e92fik8r0bdjvf46i1d.apps.googleusercontent.com
+            client-secret: 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
