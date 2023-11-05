@@ -290,8 +290,12 @@ public class AuthController {
 3. Now use this token to call the api. It will be valid for 1 hr as the time limit we have set. 
 
 ![bearToken.png](src%2Fmain%2Fresources%2Fimages%2FbearToken.png)
-
+<details>
+  <summary>Token</summary>
+  <img alt="Bear Token" src="https://github.com/atquil/spring-security/blob/JWT-Authentication/src/main/resources/images/bearToken.png">
+</details>
 4. Call the getAPI: http://localhost:8080/api/dummy/user-detail
+
 
 ![output.png](src%2Fmain%2Fresources%2Fimages%2Foutput.png)
 
