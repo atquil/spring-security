@@ -1,5 +1,5 @@
 # spring-security
-
+Note: (If you are using JIO images will not be shown, please use other internet provider)
 https://www.danvega.dev/blog/2022/09/09/spring-security-jwt
 ## What and when to use JWT
 Spring Security supports protecting endpoints using two forms of OAuth 2.0 Bearer Tokens:
@@ -290,13 +290,9 @@ public class AuthController {
 3. Now use this token to call the api. It will be valid for 1 hr as the time limit we have set. 
 
 ![bearToken.png](src%2Fmain%2Fresources%2Fimages%2FbearToken.png)
-<details>
-  <summary>Token</summary>
-  <img alt="Bear Token" src="https://github.com/atquil/spring-security/blob/JWT-Authentication/src/main/resources/images/bearToken.png">
-</details>
+
 4. Call the getAPI: http://localhost:8080/api/dummy/user-detail
 
-![bearToken.svg](src%2Fmain%2Fresources%2Fimages%2FbearToken.svg)
 ![output.png](src%2Fmain%2Fresources%2Fimages%2Foutput.png)
 
 ## Automated test
