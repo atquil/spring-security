@@ -296,7 +296,7 @@ public class AuthController {
 </details>
 4. Call the getAPI: http://localhost:8080/api/dummy/user-detail
 
-
+![bearToken.svg](src%2Fmain%2Fresources%2Fimages%2FbearToken.svg)
 ![output.png](src%2Fmain%2Fresources%2Fimages%2Foutput.png)
 
 ## Automated test
