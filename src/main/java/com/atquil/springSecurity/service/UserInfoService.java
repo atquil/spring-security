@@ -1,5 +1,6 @@
 package com.atquil.springSecurity.service;
 
+import com.atquil.springSecurity.dto.UserLoginUsingEmailDto;
 import com.atquil.springSecurity.dto.UserRegistrationDto;
 import com.atquil.springSecurity.entities.UserInfoEntity;
 import com.atquil.springSecurity.mapper.UserInfoMapper;
@@ -19,7 +20,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserRegistrationService {
+public class UserInfoService {
     private final UserInfoRepo userInfoRepo;
     private final UserInfoMapper userInfoMapper;
 
@@ -41,4 +42,13 @@ public class UserRegistrationService {
     return  savedUserDetails.getUserName()+" account has been created";
     }
 
+    public String getUserDetailsUsingEmail(UserLoginUsingEmailDto userLoginUsingEmailDto) {
+        Optional<UserInfoEntity> user = userInfoRepo.findByEmailId(userLoginUsingEmailDto.userEmail());
+        if(user.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, userLoginUsingEmailDto.userEmail()+ " not found. Please consider registering");
+        }
+        UserInfoEntity userInfoEntity = user.get();
+        return userInfoEntity.getUserName();
+
+    }
 }

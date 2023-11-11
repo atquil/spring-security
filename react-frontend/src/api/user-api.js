@@ -4,7 +4,6 @@ export const getWelcomeMessage = () => {
    
    
     return api.get('/welcome-message' ).then((response) => {
-        console.log("Response from the backend",response?.data);
         return response.data ?? {};
     }).catch(error => {
         console.error(error);
@@ -12,11 +11,18 @@ export const getWelcomeMessage = () => {
 }
 
 export const registerNewUser = (userRegistrationDto) => {
-    console.log("Sending data",userRegistrationDto);
     return api.post('/register',userRegistrationDto ).then((response) => {
-        console.log("Response from the backend",response?.data);
         return response.data ?? {};
     }).catch(error => {
         console.error(error);
+        throw new Error("User Already Exist");
+    });
+}
+
+export const loginUser = (userInfo) => {
+    return api.post('/login',userInfo).then((response) => {
+        return response.data ?? {};
+    }).catch(error => {
+        throw new Error("UserNotFound");
     });
 }

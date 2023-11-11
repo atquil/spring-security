@@ -284,6 +284,7 @@ public class UserRegistrationService {
 
     public String registerUser(UserRegistrationDto userRegistrationDto){
 
+        log.info("UserRegistrationDto:::"+userRegistrationDto);
         Optional<UserInfoEntity> user = userInfoRepo.findByEmailId(userRegistrationDto.userEmail());
         if(user.isPresent()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with emailId:"+userRegistrationDto.userEmail()+" already exist");
@@ -296,7 +297,7 @@ public class UserRegistrationService {
         //Save the user
 
         UserInfoEntity savedUserDetails = userInfoRepo.save(userInfoEntity);
-    return  savedUserDetails.getUserName()+" account has been created";
+        return  savedUserDetails.getUserName()+" account has been created";
     }
 
 }
@@ -308,10 +309,10 @@ public class UserRegistrationService {
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserRegistrationService userRegistrationService;
+    private final UserInfoService userInfoService;
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDto userRegistrationDto){
-        return ResponseEntity.ok(userRegistrationService.registerUser(userRegistrationDto));
+        return ResponseEntity.ok(userInfoService.registerUser(userRegistrationDto));
     }
 }
 
@@ -337,12 +338,11 @@ Output: alpha account has been created
 
 ```javascript
 export const registerNewUser = (userRegistrationDto) => {
-    console.log("Sending data",userRegistrationDto);
     return api.post('/register',userRegistrationDto ).then((response) => {
-        console.log("Response from the backend",response?.data);
         return response.data ?? {};
     }).catch(error => {
         console.error(error);
+        throw new Error("User Already Exist");
     });
 }
 ```
@@ -359,7 +359,7 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [mobileNo, setMobileNo] = useState('');
     const [userRegistered,setUserRegistered] = useState(null);
-
+    const [errorMessage,setErrorMessage] = useState('');
     const handleSubmit = (event) => {
         event.preventDefault();
         const userRegistrationDto = {
@@ -368,48 +368,50 @@ const Signup = () => {
             userMobileNo: mobileNo,
             userPassword: password
         }
-       
-        registerNewUser(userRegistrationDto).then((response)=>setUserRegistered(response));
+
+        registerNewUser(userRegistrationDto)
+            .then((response)=>setUserRegistered(response))
+            .catch((error)=>setErrorMessage('Login failed: ' + error.message));
     };
-  return (
-    <div>
-        {userRegistered && userRegistered ?
-            (
-                <div>
-                    User {userRegistered} has been registered
-                </div>
-            )
-            :
-            (
-                <form onSubmit={handleSubmit}>
-                    <label>
-                        Name:
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-                    </label>
-                    <br />
-                    <label>
-                        Email:
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    </label>
-                    <br />
-                    <label>
-                        Mobile No:
-                        <input type="password" value={mobileNo} onChange={(e) => setMobileNo(e.target.value)} />
-                    </label>
-                    <br />
-                    <label>
-                        Password:
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                    </label>
-                    <br />
-                    <button type="submit">Signup</button>
-                </form>
-  
-            )
-        }
-        
-    </div>
-  )
+    return (
+        <div>
+            {userRegistered && userRegistered ?
+                (
+                    <div>
+                        User {userRegistered} has been registered
+                    </div>
+                )
+                :
+                (
+                    <form onSubmit={handleSubmit}>
+                        <label>
+                            Name:
+                            <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                        </label>
+                        <br />
+                        <label>
+                            Email:
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                        </label>
+                        <br />
+                        <label>
+                            Mobile No:
+                            <input type="password" value={mobileNo} onChange={(e) => setMobileNo(e.target.value)} />
+                        </label>
+                        <br />
+                        <label>
+                            Password:
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                        </label>
+                        <br />
+                        <button type="submit">Signup</button>
+                    </form>
+
+                )
+            }
+            {errorMessage && <div>{errorMessage}</div>}
+        </div>
+    )
 }
 
 export default Signup;
@@ -447,3 +449,154 @@ export default App;
 ## 3. Login Page, redirecting to home page
 
 ### Backend
+
+1. Create a `record` which will take value `eamil` and `password` to search for the database for the user
+
+```java
+public record UserLoginUsingEmailDto(String userEmail, String userPassword){
+}
+```
+2. Create a `endpoint` which will take the record and a `service` which will search the repo for the record. 
+
+```java
+    @PostMapping ("/login")
+    public ResponseEntity<?> checkUserForLogin(@RequestBody UserLoginUsingEmailDto userLoginUsingEmailDto){
+        return ResponseEntity.ok(userInfoService.getUserDetailsUsingEmail(userLoginUsingEmailDto));
+    }
+```
+
+```java
+public String getUserDetailsUsingEmail(UserLoginUsingEmailDto userLoginUsingEmailDto) {
+        Optional<UserInfoEntity> user = userInfoRepo.findByEmailId(userLoginUsingEmailDto.userEmail());
+        if(user.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, userLoginUsingEmailDto.userEmail()+ " not found. Please consider registering");
+        }
+        UserInfoEntity userInfoEntity = user.get();
+        return userInfoEntity.getUserName();
+        
+    }
+```
+
+### Frontend
+
+1. Create an `api` , to get the value in `user-api.js`
+```javascript
+export const loginUser = (userInfo) => {
+    return api.post('/login',userInfo).then((response) => {
+        return response.data ?? {};
+    }).catch(error => {
+        throw new Error("UserNotFound");
+    });
+}
+
+```
+
+2. Create a `LoginPage.js` inside component
+
+```javascript
+import React, { useState } from 'react';
+import { loginUser } from '../api/user-api';
+
+
+export default function LoginPage() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loginSuccess,setLoginSuccess] = useState(false);
+    const [userName,setUserName] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+
+        // Validate email
+        if (!validateEmail(email)) {
+            setErrorMessage('Invalid email address');
+            return;
+        }
+
+        const userInfo = {
+            userEmail: email,
+            userPassword:password
+        }
+        loginUser(userInfo)
+            .then((response)=>
+                {
+                    setLoginSuccess(true);
+                    setUserName(response);
+                })
+            .catch((error) => {
+                setLoginSuccess(false);
+                setErrorMessage('Login failed: ' + error.message);
+            });
+    }
+    return (
+        <div>
+            {loginSuccess ? 
+                (
+                    <div>
+                        Login Successful : {userName}
+                    </div>
+                ):
+                (
+                <form onSubmit={handleSubmit}>
+                    <label>
+                        Email:
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </label>
+                    <br />
+                    <label>
+                        Password:
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </label>
+                    <br />
+                    <button type="submit">Login</button>
+                </form>
+                )
+            }
+            {errorMessage && <div>{errorMessage}</div>}
+        </div>
+    )
+}
+
+
+function validateEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+```
+
+3. Add the page in `App.js`
+```javascript
+import LoginPage from '../component/LoginPage';
+import React from 'react';
+import Signup from '../component/SignUpPage';
+import WelcomePage from '../component/WelcomePage';
+import './App.css';
+
+function App() {
+  return (
+    <div className="App">
+     <LoginPage></LoginPage>
+
+     <br></br>
+      <Signup></Signup>
+
+      <br></br>
+     <WelcomePage></WelcomePage>
+    </div>
+  );
+}
+
+export default App;
+
+```
+Output:
+- Register `ab@gmail.com`
+![RegistringAtquil.png](src%2Fmain%2Fresources%2Fimages%2FRegistringAtquil.png)
+ 
+![AtquilAccountCreated.png](src%2Fmain%2Fresources%2Fimages%2FAtquilAccountCreated.png)
+
+- Login Failed Attempt
+![LoginFailedWrongEmail.png](src%2Fmain%2Fresources%2Fimages%2FLoginFailedWrongEmail.png)
+- Login Success Attempt
+![LoginSuccess.png](src%2Fmain%2Fresources%2Fimages%2FLoginSuccess.png)

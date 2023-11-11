@@ -8,7 +8,7 @@ const Signup = () => {
     const [password, setPassword] = useState('');
     const [mobileNo, setMobileNo] = useState('');
     const [userRegistered,setUserRegistered] = useState(null);
-
+    const [errorMessage,setErrorMessage] = useState('');
     const handleSubmit = (event) => {
         event.preventDefault();
         const userRegistrationDto = {
@@ -18,7 +18,9 @@ const Signup = () => {
             userPassword: password
         }
        
-        registerNewUser(userRegistrationDto).then((response)=>setUserRegistered(response));
+        registerNewUser(userRegistrationDto)
+            .then((response)=>setUserRegistered(response))
+            .catch((error)=>setErrorMessage('Login failed: ' + error.message));
     };
   return (
     <div>
@@ -56,7 +58,7 @@ const Signup = () => {
   
             )
         }
-        
+         {errorMessage && <div>{errorMessage}</div>}
     </div>
   )
 }

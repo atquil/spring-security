@@ -76,4 +76,5 @@ public class SecurityConfig {
         bean.setOrder(CORS_FILTER_ORDER);
         return bean;
     }
+
 }
