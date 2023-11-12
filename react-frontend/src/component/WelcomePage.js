@@ -19,6 +19,7 @@ export default function WelcomePage() {
         <br />
         <Link to="/signup">Signup</Link>
         <br/>
+        <Link to="/signIn">SignIn</Link>
       </div>
     </div>
   )

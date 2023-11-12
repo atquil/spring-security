@@ -1,15 +1,15 @@
-import LoginPage from '../component/LoginPage';
 import React from 'react';
-import Signup from '../component/SignUpPage';
 import WelcomePage from '../component/WelcomePage';
-import { Route, RouterProvider, Routes, createBrowserRouter,Navigate } from 'react-router-dom';
+import { Route, RouterProvider, createBrowserRouter,Navigate } from 'react-router-dom';
 import './App.css';
 import Dashboard from '../component/Dashboard';
+import SignIn from '../component/SignIn';
+import SignUp from '../component/SignUp';
 const router = createBrowserRouter([
   { path: '/', element: <WelcomePage /> },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/signup', element: <Signup /> },
+  { path: '/signup', element: <SignUp /> },
   { path: '/dashboard', element: <Dashboard /> },
+  { path: '/signIn', element: <SignIn /> },
   { path: '/*', element:<Navigate to="/" /> },
 ]);
 function App() {
@@ -17,8 +17,8 @@ function App() {
     <div className="App">
       <RouterProvider router ={router}>
         <Route path="/" element={<WelcomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/signIn" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" />} />
       </RouterProvider>  

@@ -657,7 +657,195 @@ export default function Dashboard() {
 
 ```
 
-4. Now, modify `LoginPage.js` to redirect to Dashboard if successfull
+4. Now, modify `LoginPage.js` to redirect to Dashboard if successfully
+
+- App.js
 ```javascript
+import LoginPage from '../component/LoginPage';
+import React from 'react';
+import Signup from '../component/SignUpPage';
+import WelcomePage from '../component/WelcomePage';
+import { Route, RouterProvider, Routes, createBrowserRouter,Navigate } from 'react-router-dom';
+import './App.css';
+import Dashboard from '../component/Dashboard';
+const router = createBrowserRouter([
+  { path: '/', element: <WelcomePage /> },
+  { path: '/login', element: <LoginPage /> },
+  { path: '/signup', element: <Signup /> },
+  { path: '/dashboard', element: <Dashboard /> },
+  { path: '/*', element:<Navigate to="/" /> },
+]);
+function App() {
+  return (
+    <div className="App">
+      <RouterProvider router ={router}>
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </RouterProvider>  
+    </div>
+  );
+}
+
+export default App;
 
 ```
+- LoginPage.js
+```javascript
+import React, { useState } from 'react';
+import { loginUser } from '../api/user-api';
+import { useNavigate } from 'react-router-dom';
+
+export default function LoginPage() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loginSuccess,setLoginSuccess] = useState(false);
+    const [userName,setUserName] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const navigate = useNavigate();
+    const handleSubmit = (event) => {
+        event.preventDefault();
+
+        // Validate email
+        if (!validateEmail(email)) {
+            setErrorMessage('Invalid email address');
+            return;
+        }
+
+        const userInfo = {
+            userEmail: email,
+            userPassword:password
+        }
+        loginUser(userInfo)
+            .then((response)=>
+                {
+                    navigate('/dashboard', { state: { userName: response } });
+                })
+            .catch((error) => {
+                navigate('/dashboard', { state: { userName: "d" } });
+                setLoginSuccess(false);
+                setErrorMessage('Login failed: ' + error.message);
+            });
+    }
+    return (
+        <div>
+            {loginSuccess ? 
+                (
+                    <div>
+                        Login Successful : {userName}
+                    </div>
+                ):
+                (
+                <form onSubmit={handleSubmit}>
+                    <label>
+                        Email:
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </label>
+                    <br />
+                    <label>
+                        Password:
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </label>
+                    <br />
+                    <button type="submit">Login</button>
+                </form>
+                )
+            }
+            {errorMessage && <div>{errorMessage}</div>}
+        </div>
+    )
+}
+
+
+function validateEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
+
+```
+
+- SignUp.js
+```javascript
+import React, { useState } from 'react';
+import { registerNewUser } from '../api/user-api';
+import { useNavigate } from 'react-router-dom';
+
+
+const Signup = () => {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [mobileNo, setMobileNo] = useState('');
+    const [userRegistered,setUserRegistered] = useState(null);
+    const [errorMessage,setErrorMessage] = useState('');
+    const navigate = useNavigate();
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        const userRegistrationDto = {
+            userName: name,
+            userEmail: email,
+            userMobileNo: mobileNo,
+            userPassword: password
+        }
+       
+        registerNewUser(userRegistrationDto)
+            .then((response)=>{
+                setUserRegistered(response);
+                navigate('/login', { state: { userName: response } });}
+            )
+            .catch((error)=>setErrorMessage('Login failed: ' + error.message));
+    };
+  return (
+    <div>
+        {userRegistered && userRegistered ?
+            (
+                <div>
+                    User {userRegistered} has been registered
+                </div>
+            )
+            :
+            (
+                <form onSubmit={handleSubmit}>
+                    <label>
+                        Name:
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+                    </label>
+                    <br />
+                    <label>
+                        Email:
+                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </label>
+                    <br />
+                    <label>
+                        Mobile No:
+                        <input type="password" value={mobileNo} onChange={(e) => setMobileNo(e.target.value)} />
+                    </label>
+                    <br />
+                    <label>
+                        Password:
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    </label>
+                    <br />
+                    <button type="submit">Signup</button>
+                </form>
+  
+            )
+        }
+         {errorMessage && <div>{errorMessage}</div>}
+    </div>
+  )
+}
+
+export default Signup;
+```
+
+- Import that you have `yarn add react-router-dom ` for navigation
+
+### Modify The UI design to look everything beautiful 
+
+- Add Material Ui in your project : `yarn add @mui/material @emotion/react @emotion/styled`
+- Get the signInPage form here: https://github.com/mui/material-ui/tree/v5.14.17/docs/data/material/getting-started/templates/sign-in
+- Create a Component `SignIn.js`
