@@ -446,7 +446,7 @@ export default App;
 
 
 
-## 3. Login Page, redirecting to home page
+## 3. Login Page
 
 ### Backend
 
@@ -600,3 +600,64 @@ Output:
 ![LoginFailedWrongEmail.png](src%2Fmain%2Fresources%2Fimages%2FLoginFailedWrongEmail.png)
 - Login Success Attempt
 ![LoginSuccess.png](src%2Fmain%2Fresources%2Fimages%2FLoginSuccess.png)
+
+## 4. Routing to Dashboard and Logout
+
+1. Add `yarn add react-router-dom` for routing
+2. Modify the `App.js` page for routing
+```javascript
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import React from 'react';
+import Signup from '../component/SignUpPage';
+import LoginPage from '../component/LoginPage';
+import WelcomePage from '../component/WelcomePage';
+import Dashboard from './Dashboard';
+
+import './App.css';
+
+function App() {
+    return (
+        <Router>
+            <div className="App">
+                <Switch>
+                    <Route path="/dashboard">
+                        <Dashboard />
+                    </Route>
+                    <Route path="/">
+                        <LoginPage />
+                        <br />
+                        <Signup />
+                        <br />
+                        <WelcomePage />
+                    </Route>
+                </Switch>
+            </div>
+        </Router>
+    );
+}
+
+export default App;
+
+```
+3. Create a Dashboard.js page. 
+```javascript
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+
+export default function Dashboard() {
+    const location = useLocation();
+    const userName = location.state.userName;
+
+    return (
+        <div>
+            Login Successful : {userName}
+        </div>
+    )
+}
+
+```
+
+4. Now, modify `LoginPage.js` to redirect to Dashboard if successfull
+```javascript
+
+```

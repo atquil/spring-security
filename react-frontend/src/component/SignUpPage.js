@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { registerNewUser } from '../api/user-api';
+import { useNavigate } from 'react-router-dom';
 
 
 const Signup = () => {
@@ -9,6 +10,7 @@ const Signup = () => {
     const [mobileNo, setMobileNo] = useState('');
     const [userRegistered,setUserRegistered] = useState(null);
     const [errorMessage,setErrorMessage] = useState('');
+    const navigate = useNavigate();
     const handleSubmit = (event) => {
         event.preventDefault();
         const userRegistrationDto = {
@@ -19,7 +21,10 @@ const Signup = () => {
         }
        
         registerNewUser(userRegistrationDto)
-            .then((response)=>setUserRegistered(response))
+            .then((response)=>{
+                setUserRegistered(response);
+                navigate('/login', { state: { userName: response } });}
+            )
             .catch((error)=>setErrorMessage('Login failed: ' + error.message));
     };
   return (

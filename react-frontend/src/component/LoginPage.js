@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { loginUser } from '../api/user-api';
-
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -8,7 +8,7 @@ export default function LoginPage() {
     const [loginSuccess,setLoginSuccess] = useState(false);
     const [userName,setUserName] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-
+    const navigate = useNavigate();
     const handleSubmit = (event) => {
         event.preventDefault();
 
@@ -25,10 +25,10 @@ export default function LoginPage() {
         loginUser(userInfo)
             .then((response)=>
                 {
-                    setLoginSuccess(true);
-                    setUserName(response);
+                    navigate('/dashboard', { state: { userName: response } });
                 })
             .catch((error) => {
+                navigate('/dashboard', { state: { userName: "d" } });
                 setLoginSuccess(false);
                 setErrorMessage('Login failed: ' + error.message);
             });
