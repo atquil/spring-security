@@ -1,5 +1,6 @@
 package com.atquil.springSecurity.entities;
 
+import com.atquil.springSecurity.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,6 +31,10 @@ public class UserInfoEntity {
 
     @Column(name = "MOBILE_NUMBER")
     private String mobileNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, name = "ROLE")
+    private UserRole role;
 
     @Column(nullable = false, name = "PASSWORD")
     private String password;

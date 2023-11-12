@@ -13,11 +13,22 @@ import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
 import validateEmail from '../common/function/validateEmail';
 import { registerNewUser } from '../api/user-api';
+import { MenuItem, Select } from '@mui/material';
 
+const USER_ROLE = {
+    ADMIN: 'ADMIN',
+    USER: 'USER',
+    MANAGER: 'MANAGER',
+  };
 
 export default function SignUp() {
     const navigate = useNavigate();
     const [errorMessage, setErrorMessage] = useState('');
+    const [role,setRole] = useState(USER_ROLE.ADMIN);
+    
+    const handleChange = (event) => {
+        setRole(event.target.value);
+      };
     const handleSubmit = (event) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -29,7 +40,8 @@ export default function SignUp() {
             userName: data.get('userName'),
             userEmail: data.get('email'),
             userMobileNo: data.get('mobileNo'),
-            userPassword: data.get('password')
+            userPassword: data.get('password'),
+            userRole:role
         }
         registerNewUser(userRegistrationDto)
             .then((response)=>{
@@ -60,7 +72,7 @@ export default function SignUp() {
           </Typography>
           <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} >
+              <Grid item xs={12} sm={8} >
                 <TextField
                   autoComplete="given-name"
                   name="userName"
@@ -70,6 +82,23 @@ export default function SignUp() {
                   label="User Name"
                   autoFocus
                 />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Select
+                    value={role}
+                    onChange={handleChange}
+                    displayEmpty
+                    inputProps={{ 'aria-label': 'Without label' }}
+                    >
+                    <MenuItem value="" disabled>
+                    Select Role
+                    </MenuItem>
+                        {Object.values(USER_ROLE).map((option) => (
+                            <MenuItem key={option} value={option}>
+                                {option}
+                            </MenuItem>
+                        ))}
+                </Select>
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -91,6 +120,7 @@ export default function SignUp() {
                   autoComplete="email"
                 />
               </Grid>
+              
               <Grid item xs={12}>
                 <TextField
                   required

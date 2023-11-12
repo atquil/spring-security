@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,6 +34,8 @@ public class UserInfoService {
         }
         // Now Map the DTO to Entities
         UserInfoEntity userInfoEntity = userInfoMapper.convertToEntity(userRegistrationDto);
+
+        log.info("userInfoEntity--",userInfoEntity.getRole());
         //About password, we will have to encode it then save it.
 
         userInfoEntity.setPassword(userRegistrationDto.userPassword()); // Need to encrypt
@@ -50,5 +53,9 @@ public class UserInfoService {
         UserInfoEntity userInfoEntity = user.get();
         return userInfoEntity.getUserName();
 
+    }
+
+    public List<UserInfoEntity> getAllUserDetails() {
+       return userInfoRepo.findAll();
     }
 }

@@ -26,3 +26,11 @@ export const loginUser = (userInfo) => {
         throw new Error("UserNotFound");
     });
 }
+
+export const getAllUser = () => {
+    return api.get('/api/all-user').then((response) => {
+        return response.data ?? {};
+    }).catch(error => {
+        throw new Error(" No user found");
+    });
+}
