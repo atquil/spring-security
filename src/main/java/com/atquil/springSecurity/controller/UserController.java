@@ -31,4 +31,6 @@ public class UserController {
     public ResponseEntity<?> checkUserForLogin(@RequestBody UserLoginUsingEmailDto userLoginUsingEmailDto){
         return ResponseEntity.ok(userInfoService.getUserDetailsUsingEmail(userLoginUsingEmailDto));
     }
+
+
 }
