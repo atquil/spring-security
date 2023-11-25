@@ -12,3 +12,8 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: create-drop #Create new db everytime i start the project
+
+
+rsa:
+  rsa-private-key: classpath:certs/private.pem
+  rsa-public-key: classpath:certs/publicKey.pem

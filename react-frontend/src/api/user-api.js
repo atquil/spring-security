@@ -1,4 +1,5 @@
 import api from "../config/api-config";
+import basicAuthAPI from "../config/basic-auth-api-config";
 
 export const getWelcomeMessage = () => {
    
@@ -20,7 +21,16 @@ export const registerNewUser = (userRegistrationDto) => {
 }
 
 export const loginUser = (userInfo) => {
-    return api.post('/login',userInfo).then((response) => {
+
+    const authHeader = btoa(userInfo.userEmail+':'+userInfo.userPassword);
+ 
+    return basicAuthAPI.post('/token',{
+        headers: {
+            'Authorization': authHeader
+        }
+
+    }).then((response) => {
+        console.log(response.data);
         return response.data ?? {};
     }).catch(error => {
         throw new Error("UserNotFound");

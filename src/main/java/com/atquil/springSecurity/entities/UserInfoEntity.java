@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 public class UserInfoEntity {
 
     @Id
-    @GeneratedValue(strategy= GenerationType.UUID) //It will find the best suitable match based on what kind of db we are using
+    @GeneratedValue //It will find the best suitable match based on what kind of db we are using
     private String id;
 
     @Column(name = "USER_NAME")

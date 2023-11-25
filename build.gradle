@@ -30,6 +30,12 @@ dependencies {
     //Database:
     runtimeOnly 'com.h2database:h2' // You can use any sql database
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    //security:
+    //jwt
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
 }
 
 tasks.named('test') {
