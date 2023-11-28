@@ -1,10 +1,11 @@
+import { setAuthHeader } from "../auth/login";
 import api from "../config/api-config";
 import basicAuthAPI from "../config/basic-auth-api-config";
 
 export const getWelcomeMessage = () => {
    
    
-    return api.get('/welcome-message' ).then((response) => {
+    return api.get('/api/welcome-message' ).then((response) => {
         return response.data ?? {};
     }).catch(error => {
         console.error(error);
@@ -30,6 +31,8 @@ export const loginUser = (userInfo) => {
         }
 
     }).then((response) => {
+        window.localStorage.setItem('auth_token', response.data);
+        //setAuthHeader(response.data);
         console.log(response.data);
         return response.data ?? {};
     }).catch(error => {
@@ -38,9 +41,11 @@ export const loginUser = (userInfo) => {
 }
 
 export const getAllUser = () => {
+    console.log("In here");
     return api.get('/api/all-user').then((response) => {
         return response.data ?? {};
     }).catch(error => {
         throw new Error(" No user found");
     });
 }
+

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAllUser } from '../api/user-api';
+import { getAllUser, getWelcomeMessage } from '../api/user-api';
 
 import { Grid, Card, CardContent, Typography, CardHeader, Box, AppBar, Toolbar, IconButton, Button, colors } from '@mui/material';
 import LogOut from '../common/function/logOut';
@@ -10,12 +10,31 @@ import LogOut from '../common/function/logOut';
 export default function Dashboard() {
  
   const [users, setUsers] = useState([]);
- 
-
+  const [uP, setUP] = useState(true);
+  const [welcomeMessage,setWelcomeMessage] = useState('');
   useEffect(() => {
     getAllUser().then((response) => {
-      setUsers(response);
+        if(response){
+            setUsers(response);
+            
+        }
+        else{
+            setUP(false);
+        }
+      
+    }).catch((error) => {
+        setUP(false);
     });
+
+    getWelcomeMessage().then((response)=>{
+        const responseMessage = response;
+       setWelcomeMessage(responseMessage);
+        console.log("welcome message:",welcomeMessage);
+    }
+    ).catch((error)=>{
+        console.log("error");
+    });
+
   }, []);
 
   return (
@@ -32,8 +51,12 @@ export default function Dashboard() {
                 </AppBar>
             </Box>
         </div>
-       
+       {welcomeMessage && 
         <div>
+            {welcomeMessage}
+        </div>
+       }
+       { !uP && <div>
             <Grid container spacing={5} direction="row" justify="center" alignItems="center" padding={5} >
             {users.map((user) => (
             <Grid item xs={12} sm={6} md={4} key={user.id}>
@@ -54,8 +77,9 @@ export default function Dashboard() {
             </Grid>
             ))}
         </Grid>
+        
         </div>
-      
+      }
     </div>
   );
 }
