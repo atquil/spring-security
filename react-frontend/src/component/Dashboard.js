@@ -3,17 +3,22 @@ import { getAllUser, getWelcomeMessage } from '../api/user-api';
 
 import { Grid, Card, CardContent, Typography, CardHeader, Box, AppBar, Toolbar, IconButton, Button, colors } from '@mui/material';
 import LogOut from '../common/function/logOut';
+import { useNavigate } from 'react-router-dom';
+
 
 
 
 
 export default function Dashboard() {
- 
+    const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [uP, setUP] = useState(true);
   const [welcomeMessage,setWelcomeMessage] = useState('');
   useEffect(() => {
-    getAllUser().then((response) => {
+    if(!localStorage.getItem("auth_token")){
+       navigate("/signIn");
+    }
+    else{ getAllUser().then((response) => {
         if(response){
             setUsers(response);
             
@@ -34,7 +39,8 @@ export default function Dashboard() {
     ).catch((error)=>{
         console.log("error");
     });
-
+}
+   
   }, []);
 
   return (
@@ -46,7 +52,7 @@ export default function Dashboard() {
                         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                             Dashboard
                         </Typography>
-                        <LogOut />
+                        <LogOut/>
                     </Toolbar>
                 </AppBar>
             </Box>

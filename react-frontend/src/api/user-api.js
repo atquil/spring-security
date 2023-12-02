@@ -23,14 +23,15 @@ export const registerNewUser = (userRegistrationDto) => {
 
 export const loginUser = (userInfo) => {
 
-    const authHeader = btoa(userInfo.userEmail+':'+userInfo.userPassword);
- 
+    const authHeader =  window.btoa(userInfo.userEmail+":"+userInfo.userPassword);
+    console.log("----",authHeader);
     return basicAuthAPI.post('/token',{
-        headers: {
-            'Authorization': authHeader
+        headers: { 
+            'Authorization': 'Basic '+ authHeader,
         }
 
     }).then((response) => {
+        console.log("Sucessfully logedin");
         window.localStorage.setItem('auth_token', response.data);
         //setAuthHeader(response.data);
         console.log(response.data);

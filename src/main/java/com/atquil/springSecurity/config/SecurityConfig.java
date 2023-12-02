@@ -88,8 +88,10 @@ public class SecurityConfig {
                 HttpMethod.GET.name(),
                 HttpMethod.POST.name(),
                 HttpMethod.PUT.name(),
+                HttpMethod.OPTIONS.name(),
                 HttpMethod.DELETE.name()));
         config.setMaxAge(MAX_AGE);
+        config.addExposedHeader("Authorization");
 
 
         source.registerCorsConfiguration("/**", config);
@@ -105,7 +107,9 @@ public class SecurityConfig {
         return httpSecurity
                 .securityMatcher(new AntPathRequestMatcher("/token"))
                 .csrf(csrf->csrf.disable())
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+
+                .authorizeHttpRequests(auth ->
+                        auth.anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> {
                     ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
