@@ -293,3 +293,40 @@ authentication, authorization, and other security features for your applications
 | `http://localhost:8080/api/user/test2` | Yes    |
 | `http://localhost:8080/api/user/test3` | No     |
 
+### Part 5: Adding UI using react
+
+1. Setup
+   - Install : 
+     - node: `https://nodejs.org/en/download` and check version using `npm -v`
+     - yarn: `npm install --global yarn` and check using `yarn -v`
+     - axios: `yarn add axios` for API's 
+   - Create project using `npx create-react-app frontend`
+   - Update the project based on new version of react using : `npm install react-scripts@latest`
+   - Add front-end `.gitIgnore` to main file as it will be used
+      ```.gitignore
+         # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+         
+         # dependencies
+         /node_modules
+         /.pnp
+         .pnp.js
+         
+         # testing
+         /coverage
+         
+         # production
+         /build
+         
+         # misc
+         .DS_Store
+         .env.local
+         .env.development.local
+         .env.test.local
+         .env.production.local
+         
+         npm-debug.log*
+         yarn-debug.log*
+         yarn-error.log*
+   
+      ```
+2. 
