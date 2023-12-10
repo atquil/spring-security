@@ -293,13 +293,15 @@ authentication, authorization, and other security features for your applications
 | `http://localhost:8080/api/user/test2` | Yes    |
 | `http://localhost:8080/api/user/test3` | No     |
 
-### Part 5: Adding UI using react
+### Part 5: Adding UI using react: `cd frontend` and do these steps. Or please open frontend from `vs-code`
 
-1. Setup
+1. Setup : 
    - Install : 
      - node: `https://nodejs.org/en/download` and check version using `npm -v`
      - yarn: `npm install --global yarn` and check using `yarn -v`
-     - axios: `yarn add axios` for API's 
+     - Add **axios**: `yarn add axios` for API's 
+     - Add **Routing** : `yarn add react-router-dom`
+     - Add **Material UI ** `yarn add @mui/material @emotion/react @emotion/styled`
    - Create project using `npx create-react-app frontend`
    - Update the project based on new version of react using : `npm install react-scripts@latest`
    - Add front-end `.gitIgnore` to main file as it will be used
@@ -329,4 +331,219 @@ authentication, authorization, and other security features for your applications
          yarn-error.log*
    
       ```
-2. 
+2. Create an api, which needs to be called, once we have Sign-In. 
+
+   - Let's create a `.env` file, to hold env variable like `host` we are going to use: `REACT_APP_BACKEND_URL = http://localhost:8080/`
+   - Create a folder `config` inside `src` and add `basic-auth-api-config.js`
+   ```javascript
+   import axios from "axios";
+   
+   
+   const basicAuthAPI =  axios.create({
+      baseURL: process.env.REACT_APP_BACKEND_URL,
+      headers: {
+            'Content-Type': 'application/json',
+        }
+   });
+   
+   
+   export default basicAuthAPI;
+   ```
+   - Inside `api` folder add `user-api.js` where you will have all the backend-calling api
+   ```javascript
+   import basicAuthAPI from "../config/basic-auth-api-config";
+   
+   export const test2 = (userInfo) => {
+   
+       const authHeader =  window.btoa(userInfo.userEmail+":"+userInfo.userPassword);
+       
+       return basicAuthAPI.get('/api/user/test2',{
+           headers: { 
+               'Authorization': 'Basic '+ authHeader,
+           }
+   
+       }).then((response) => {
+           console.log("Response:::",response.data);
+           return response.data ?? {};
+       }).catch(error => {
+           throw new Error("UserNotFound");
+       });
+   }
+   ```
+
+3. Let's create a `SignIn.js` page, using inside `pages` folder
+
+   ```javascript
+   import React, { useState } from 'react';
+   import Avatar from '@mui/material/Avatar';
+   import Button from '@mui/material/Button';
+   import CssBaseline from '@mui/material/CssBaseline';
+   import TextField from '@mui/material/TextField';
+   import FormControlLabel from '@mui/material/FormControlLabel';
+   import Checkbox from '@mui/material/Checkbox';
+   import Link from '@mui/material/Link';
+   import Grid from '@mui/material/Grid';
+   import Box from '@mui/material/Box';
+   
+   import Typography from '@mui/material/Typography';
+   import Container from '@mui/material/Container';
+   import { useNavigate } from 'react-router-dom';
+   
+   import { test2 } from '../api/user-api';
+   
+   
+   export default function SignIn() {
+       const navigate = useNavigate();
+       const [errorMessage, setErrorMessage] = useState('');
+     const handleSubmit = (event) => {
+       event.preventDefault();
+       
+       const data = new FormData(event.currentTarget);
+       const userInfo = {
+           userEmail: data.get('email'),
+           userPassword:data.get('password')
+       }
+       test2(userInfo)
+           .then((response)=>
+               {    
+                   navigate('/dashboard', { state: { response: response } });
+               })
+           .catch((error) => {
+               setErrorMessage('Login failed: Please create your account');
+           });
+     };
+   
+     return (
+       <div >
+         <Container component="main" maxWidth="xs">
+           <CssBaseline />
+           <Box
+             sx={{
+               marginTop: 18,
+               display: 'flex',
+               flexDirection: 'column',
+               alignItems: 'center',
+             }}
+           >
+           {errorMessage && <div>{errorMessage}</div>}
+             <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
+              
+             </Avatar>
+             <Typography component="h1" variant="h5">
+               Sign in
+             </Typography>
+             <Box component="form" onSubmit={handleSubmit}  sx={{ mt: 1 }}>
+               <TextField
+                 margin="normal"
+                 required
+                 fullWidth
+                 id="email"
+                 label="Email Address"
+                 name="email"
+                 autoComplete="email"
+                 autoFocus
+                 
+               />
+               <TextField
+                 margin="normal"
+                 required
+                 fullWidth
+                 name="password"
+                 label="Password"
+                 type="password"
+                 id="password"
+                 autoComplete="current-password"
+               />
+               <FormControlLabel
+                 control={<Checkbox value="remember" color="primary" />}
+                 label="Remember me"
+               />
+               <Button
+                 type="submit"
+                 fullWidth
+                 variant="contained"
+                 sx={{ mt: 3, mb: 2 }}
+               >
+                 Sign In
+               </Button>
+               <Grid container>
+                 <Grid item xs>
+                   <Link href="#" variant="body2">
+                     Forgot password?
+                   </Link>
+                 </Grid>
+                 <Grid item>
+                   <Link href="/signUp" variant="body2">
+                     {"Don't have an account? Sign Up"}
+                   </Link>
+                 </Grid>
+               </Grid>
+             </Box>
+           </Box>
+           
+        
+           <Copyright sx={{ mt: 8, mb: 4 }} />
+         </Container>
+         
+       </div>
+     );
+   }
+   
+   function Copyright(props) {
+       return (
+         <Typography variant="body2" color="text.secondary" align="center" {...props}>
+           {'Copyright © '}
+           <Link color="inherit" href="https://www.youtube.com/@atquil1032">
+             Atquil
+           </Link>{' '}
+           {new Date().getFullYear()}
+           {'.'}
+         </Typography>
+       );
+     }
+   ```
+4. Also create a `Dashboard.js` page to show the response data
+
+   ```javascript
+   import React from 'react';
+   
+   export default function Dashboard() {
+    
+         
+     return (
+       <div>
+           You have have Sign-In
+       </div>
+     );
+   }
+   ```
+
+5. Let's create a `routing`  in `App.js`
+
+   ```javascript
+   import React from 'react';
+   import { Route, RouterProvider, createBrowserRouter,Navigate } from 'react-router-dom';
+   import './App.css';
+   import SignIn from '../component/SignIn';
+   import Dashboard from './pages/Dashboard';
+   
+   const router = createBrowserRouter([
+      { path: '/', element: <SignIn /> },
+      { path: '/dashboard', element: <Dashboard /> },
+      { path: '/*', element:<Navigate to="/" /> },
+   ]);
+   function App() {
+      return (
+              <div className="App">
+                 <RouterProvider router ={router}>
+                    <Route path="/" element={<SignIn />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                 </RouterProvider>
+              </div>
+      );
+   }
+   
+   export default App;
+   ```
+3. Add an `url` to connect with in `.env` file : 
+3. 
