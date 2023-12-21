@@ -23,32 +23,32 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
     }
 
    ```
-3. Create a package `UserController` and add one `testAPI`
+3. Create a package `UserController` and add one `anyone`
     ```java
     @RestController
-    @RequestMapping("/api/user")
+    @RequestMapping("/api")
     public class UserController {
     
-        @GetMapping("/test1")
-        public ResponseEntity<?> getTestAPI(){
-            return ResponseEntity.ok("Response");
-        }
+         @GetMapping("/anyone")
+         public ResponseEntity<?> getTestAPI(){
+            return ResponseEntity.ok("Anyone can access me");
+         }
     }
 
     ```
-4. You can access the API : `http://localhost:8080/api/user/test` using `username`: `user` and `password`: console
+4. You can access the API : `http://localhost:8080/api/anyone` using `username`: `user` and `password`: console
 5. You can also set `username` and `password` in `application.yml` file. 
     ```yaml
     spring:
      security:
          user:
              name: atquil
-             password: atquil
+             password: password
     ```
 
 ### Part 2: UserDetailsManager - InMemoryUserDetailsManager
 
-1. Create a `UserInfoDetails` class in `config` package
+1. Create a `UserDetailsConfig` class in `config` package
 2. Add `InMemoryUserDetailsManager` in the config. Also comment out the userDetails in `application.yml`
    ```java
    @Configuration
@@ -58,7 +58,7 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
         return new InMemoryUserDetailsManager(
                 User.withUsername("atquil")
                     .password(passwordEncoder().encode("password")) 
-                    .authorities("ROLE_USER")
+                    .authorities("ROLE_MANAGER")
                     .build()
         );
     }
@@ -68,7 +68,7 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
     }
    }
    ```
-3. Test the API:  `http://localhost:8080/api/user/test1`
+3. Test the API:  `http://localhost:8080/api/manager`
 4. Enable method level security for API. 
    ```java
    @EnableWebSecurity
@@ -97,39 +97,37 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
    @RestController
    public class UserController {
    
-       @GetMapping("/test1")
-       public ResponseEntity<?> getTestAPI(){
-           return ResponseEntity.ok("Response");
-       }
-   
-       //Accessed only with the role USER
-       @PreAuthorize("hasRole('ROLE_USER')")
-       @GetMapping("/test2")
-       public ResponseEntity<?> getTestAPI2(Principal principal){
-   
-           return ResponseEntity.ok(principal.getName()+": has logged in.");
-       }
-       //Accessed only with the role OWNER
-       @PreAuthorize("hasRole('ROLE_OWNER')")
-       @GetMapping("/test3")
-       public ResponseEntity<?> getTestAPI3(Principal principal){
-           return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
-       }
+        @GetMapping("/anyone")
+        public ResponseEntity<?> getTestAPI(){
+            return ResponseEntity.ok("Anyone can access me");
+        }
+
+        @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
+        @GetMapping("/manager")
+        public ResponseEntity<?> getTestAPI2(Principal principal){
+            return ResponseEntity.ok(principal.getName()+": has logged in.");
+        }
+       
+        @PreAuthorize("hasRole('ROLE_ADMIN')")
+        @GetMapping("/admin")
+        public ResponseEntity<?> getTestAPI3(Principal principal){
+            return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
+        }
    }
 
    ```
 5. Test the API:
 
-| API                                    | Access |
-|----------------------------------------|--------|
-| `http://localhost:8080/api/user/test1` | YES    |
-| `http://localhost:8080/api/user/test2` | YES    |
-| `http://localhost:8080/api/user/test3` | NO     |
+| API                                 | Access |
+|-------------------------------------|--------|
+| `http://localhost:8080/api/anyone`  | YES    |
+| `http://localhost:8080/api/manager` | YES    |
+| `http://localhost:8080/api/admin`   | NO     |
 
 
 ### Part 3: UserDetailsManager - JdbcUserDetailsManager
 
-1. Add database `dependency`: 
+1. Add database `dependency`: `h2database`, `jpa`
 
    ```
    dependencies {
@@ -146,7 +144,7 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
    }
    ```
-2. Add the `h2-console` config in `application.yml`
+2. Add the `h2-console` config in `application.yml` to show h2-console
    ```yaml
    spring:
       h2:
@@ -158,36 +156,37 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
    ```java
    @Configuration
    public class UserDetailsConfig {
-   //    @Bean
-   //    public InMemoryUserDetailsManager user(){
-   //        return new InMemoryUserDetailsManager(
-   //                User.withUsername("atquil")
-   //                        .password(passwordEncoder().encode("password"))
-   //                        .authorities("ROLE_USER")
-   //                        .build()
-   //        );
-   //    }
+        // ....
    
-       @Bean
-       EmbeddedDatabase datasource(){
-           return new EmbeddedDatabaseBuilder()
-                   .setType(EmbeddedDatabaseType.H2)
-                   .setName("atquilDb")
-                   .addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION) //Present default script to create user Roles
-                   .build();
-       }
-       @Bean
-       JdbcUserDetailsManager userDetailsManager(DataSource dataSource){
-           UserDetails userDetails = User.builder()
-                   .username("atquil")
-                   .password(passwordEncoder().encode("password"))
-                   .roles("OWNER")
-                   .build();
-           JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
-           jdbcUserDetailsManager.createUser(userDetails);
-           return jdbcUserDetailsManager;
-       }
+       // *********** JDBC - User Details Manager
+
+        @Bean
+        EmbeddedDatabase datasource(){
+            return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("atquilDb")
+                .addScript(JdbcDaoImpl.DEFAULT_USER_SCHEMA_DDL_LOCATION) //Present default script to create user Roles
+                .build();
+        }
    
+        @Bean
+        JdbcUserDetailsManager userDetailsManager(DataSource dataSource){
+            UserDetails manager = User.builder()
+                .username("manager")
+                .password(passwordEncoder().encode("password"))
+                .roles("MANAGER")
+                .build();
+            UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder().encode("password"))
+                .roles("ADMIN")
+                .build();
+
+            JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+            jdbcUserDetailsManager.createUser(manager);
+            jdbcUserDetailsManager.createUser(admin);
+            return jdbcUserDetailsManager;
+        }
        @Bean
        PasswordEncoder passwordEncoder() {
            return new BCryptPasswordEncoder();
@@ -204,30 +203,34 @@ UserDetailsManager has two implementation: **InMemoryUserDetailsManager** and **
    public class SecurityConfig {
    
    
-       @Bean
-       SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-           return httpSecurity
-                   .authorizeHttpRequests( auth -> {
-                       auth.requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll();
-                       auth.anyRequest().authenticated();
-                   })
-                   .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
-                   .headers(headers -> headers.frameOptions(withDefaults()).disable())
-                   .formLogin(withDefaults())
-                   .build();
-       }
+       // SecurityFilterChain bean will be managed by application context, which helps in filtering out the api's for web-based protection
+        @Bean
+        SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+            return httpSecurity
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll();
+                    auth.anyRequest().authenticated();
+                })
+                // ignore cross-site-request-forgery(CSRF) , though you should never disable it, but for to access some tools we need to disable it
+                .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
+                // important to display h2-console in frame in browser.
+                .headers(headers -> headers.frameOptions(withDefaults()).disable())
+                .formLogin(withDefaults())
+                .httpBasic(withDefaults()) // if formLogin is not available, then we can use it.
+                .build();
+        }
    
    }
 
    ```
    
-5. Test the API: 
+5. Test the API: using `admin`
    
-   | API                                    | Access |
-   |----------------------------------------|--------|
-   | `http://localhost:8080/api/user/test1` | YES    |
-   | `http://localhost:8080/api/user/test2` | NO     |
-   | `http://localhost:8080/api/user/test3` | YES    |
+   | API                                 | Access |
+   |-------------------------------------|--------|
+   | `http://localhost:8080/api/anyone`  | YES    |
+   | `http://localhost:8080/api/manager` | YES    |
+   | `http://localhost:8080/api/admin`   | YES    |
 
 6. You can also see data in `h2-console` : `http://localhost:8080/h2-console`
-![h2-console.png](src%2Fmain%2Fresources%2Fh2-console.png)
+![h2-console.png](src%2Fmain%2Fresources%2Fimages%2Fh2-console.png)
