@@ -23,7 +23,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-
+    // SecurityFilterChain bean will be managed by application context, which helps in filtering out the api's for web-based protection
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
@@ -31,9 +31,12 @@ public class SecurityConfig {
                     auth.requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll();
                     auth.anyRequest().authenticated();
                 })
+                // ignore cross-site-request-forgery(CSRF) , though you should never disable it, but for to access some tools we need to disable it
                 .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
+                // important to display h2-console in frame in browser.
                 .headers(headers -> headers.frameOptions(withDefaults()).disable())
                 .formLogin(withDefaults())
+                .httpBasic(withDefaults()) // if formLogin is not available, then we can use it.
                 .build();
     }
 

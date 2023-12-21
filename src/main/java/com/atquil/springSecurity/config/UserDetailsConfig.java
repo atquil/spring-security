@@ -20,6 +20,10 @@ import javax.sql.DataSource;
  */
 @Configuration
 public class UserDetailsConfig {
+
+    //UserDetailsManager has two internal implementation : In-Memory User Details Manager and JDBC User details manager
+
+    // *********** In-memory User details manager
 //    @Bean
 //    public InMemoryUserDetailsManager user(){
 //        return new InMemoryUserDetailsManager(
@@ -29,6 +33,8 @@ public class UserDetailsConfig {
 //                        .build()
 //        );
 //    }
+
+    // *********** JDBC - User Details Manager
 
     @Bean
     EmbeddedDatabase datasource(){
@@ -40,16 +46,22 @@ public class UserDetailsConfig {
     }
     @Bean
     JdbcUserDetailsManager userDetailsManager(DataSource dataSource){
-        UserDetails userDetails = User.builder()
-                .username("atquil")
+        UserDetails manager = User.builder()
+                .username("manager")
                 .password(passwordEncoder().encode("password"))
-                .roles("OWNER")
+                .roles("MANAGER")
                 .build();
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder().encode("password"))
+                .roles("ADMIN")
+                .build();
+
         JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
-        jdbcUserDetailsManager.createUser(userDetails);
+        jdbcUserDetailsManager.createUser(manager);
+        jdbcUserDetailsManager.createUser(admin);
         return jdbcUserDetailsManager;
     }
-
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

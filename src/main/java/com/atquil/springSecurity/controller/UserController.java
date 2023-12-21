@@ -11,25 +11,24 @@ import java.security.Principal;
 /**
  * @author atquil
  */
-@RequestMapping("/api/user")
+@RequestMapping("/api")
 @RestController
 public class UserController {
 
-    @GetMapping("/test1")
+    @GetMapping("/anyone")
     public ResponseEntity<?> getTestAPI(){
-        return ResponseEntity.ok("Response");
+        return ResponseEntity.ok("Anyone can access me");
     }
 
-    //Accessed only with the role USER
-    @PreAuthorize("hasRole('ROLE_USER')")
-    @GetMapping("/test2")
+    @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
+    @GetMapping("/manager")
     public ResponseEntity<?> getTestAPI2(Principal principal){
 
         return ResponseEntity.ok(principal.getName()+": has logged in.");
     }
-    //Accessed only with the role OWNER
-    @PreAuthorize("hasRole('ROLE_OWNER')")
-    @GetMapping("/test3")
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/admin")
     public ResponseEntity<?> getTestAPI3(Principal principal){
         return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
     }
