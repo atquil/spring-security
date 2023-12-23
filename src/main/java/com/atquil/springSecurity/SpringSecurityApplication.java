@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
+
 @SpringBootApplication
 public class SpringSecurityApplication {
 
@@ -19,11 +21,16 @@ public class SpringSecurityApplication {
     @Bean
     CommandLineRunner commandLineRunner(UserRepo userRepo, PasswordEncoder passwordEncoder){
         return args -> {
-            UserEntity userEntity = new UserEntity();
-            userEntity.setUsername("atquil");
-            userEntity.setPassword(passwordEncoder.encode("password"));
-            userEntity.setRoles("ROLE_USER,ROLE_ADMIN");
-            userRepo.save(userEntity);
+            UserEntity manager = new UserEntity();
+            manager.setUsername("manager");
+            manager.setPassword(passwordEncoder.encode("password"));
+            manager.setRoles("ROLE_MANAGER");
+
+            UserEntity admin = new UserEntity();
+            admin.setUsername("admin");
+            admin.setPassword(passwordEncoder.encode("password"));
+            admin.setRoles("ROLE_MANAGER,ROLE_ADMIN");
+            userRepo.saveAll(List.of(manager,admin));
         };
     }
 }

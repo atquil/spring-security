@@ -16,15 +16,13 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class JPAUserDetailsManagerConfig implements UserDetailsService {
-//UserDetails simply store user info which is later encapsulated into Authentication object.
 
     private final UserRepo userRepo;
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Optional<UserEntity> user = userRepo.findByUsername(username);
         return userRepo
                 .findByUsername(username)
                 .map(UserSecurityConfig::new)
-                .orElseThrow(()-> new UsernameNotFoundException("User :"+username+" does not exist"));
+                .orElseThrow(()-> new UsernameNotFoundException("User: "+username+" does not exist"));
     }
 }

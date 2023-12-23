@@ -39,7 +39,7 @@ authentication, authorization, and other security features for your applications
         database-platform: org.hibernate.dialect.H2Dialect
         show-sql: true
         hibernate:
-        ddl-auto: create-drop #Create new db everytime we start the application
+          ddl-auto: create-drop #Create new db everytime we start the application
     
    ```
 
@@ -48,7 +48,7 @@ authentication, authorization, and other security features for your applications
 1. Create a `UserEntity`, which holds User Data in `entity` package
     ```java
     @Entity
-    @Table(name = "users")
+    @Table(name = "USERS")
     @Data
     @NoArgsConstructor
     public class UserEntity {
@@ -121,11 +121,17 @@ authentication, authorization, and other security features for your applications
         @Bean
         CommandLineRunner commandLineRunner(UserRepo userRepo, PasswordEncoder passwordEncoder){
             return args -> {
-                UserEntity userEntity = new UserEntity();
-                userEntity.setUsername("atquil");
-                userEntity.setPassword(passwordEncoder.encode("password")); 
-                userEntity.setRoles("ROLE_USER,ROLE_ADMIN");
-                userRepo.save(userEntity);
+                UserEntity manager = new UserEntity();
+                manager.setUsername("manager");
+                manager.setPassword(passwordEncoder.encode("password"));
+                manager.setRoles("ROLE_MANAGER");
+
+                UserEntity admin = new UserEntity();
+                admin.setUsername("admin");
+                admin.setPassword(passwordEncoder.encode("password"));
+                admin.setRoles("ROLE_MANAGER,ROLE_ADMIN");
+                
+                userRepo.saveAll(List.of(manager,admin));
             };
         }
     }
@@ -139,6 +145,7 @@ authentication, authorization, and other security features for your applications
 
 1. Create a file `UserSecurityConfig` which will implement `UserDetails`, for `Authentication`, using the `UserEntity` object. 
 
+   **UserDetails simply store user info which is later encapsulated into Authentication object.**
    ```java
    @RequiredArgsConstructor
    public class UserSecurityConfig implements UserDetails {
@@ -192,16 +199,14 @@ authentication, authorization, and other security features for your applications
    @Service
    @RequiredArgsConstructor
    public class JPAUserDetailsManagerConfig implements UserDetailsService {
-   //UserDetails simply store user info which is later encapsulated into Authentication object.
    
        private final UserRepo userRepo;
        @Override
        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-           Optional<UserEntity> user = userRepo.findByUsername(username);
            return userRepo
-                   .findByUsername(username)
+                   .findByUsername(username) // Create the method like this Optional<UserEntity> findByUsername(String username);
                    .map(UserSecurityConfig::new)
-                   .orElseThrow(()-> new UsernameNotFoundException("User :"+username+" does not exist"));
+                   .orElseThrow(()-> new UsernameNotFoundException("User: "+username+" does not exist"));
        }
    }
    ```
@@ -246,28 +251,28 @@ authentication, authorization, and other security features for your applications
 1. Create a `UserController` and add 2 endpoints. 
    ```java
    @RestController
-   @RequestMapping("/api/user")
+   @RequestMapping("/api")
    @RequiredArgsConstructor
    public class UserController {
    
        private final UserRepo userRepo;
        //Everyone can access
-       @GetMapping("/test1")
-       public ResponseEntity<?> getTestAPI(){
+       @GetMapping("/anyone")
+       public ResponseEntity<?> getTestAPI1(){
            return ResponseEntity.ok("Response");
        }
    
-       //Accessed only with the role USER
-       @PreAuthorize("hasRole('ROLE_USER')")
-       @GetMapping("/test2")
+       //Accessed only with the role MANAGER AND ADMIN
+       @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
+       @GetMapping("/MANAGER")
        public ResponseEntity<?> getTestAPI2(Principal principal){
-               
+   
            return ResponseEntity.ok(principal.getName()+" : All data from backend"+ userRepo.findAll());
        }
    
-       //Accessed only with the role OWNER
-       @PreAuthorize("hasRole('ROLE_OWNER')")
-       @GetMapping("/test3")
+       //Accessed only with the role ADMIN
+       @PreAuthorize("hasRole('ROLE_ADMIN')")
+       @GetMapping("/admin")
        public ResponseEntity<?> getTestAPI3(Principal principal){
            return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
        }
@@ -285,11 +290,11 @@ authentication, authorization, and other security features for your applications
       }
    ```
    
-3. Test with the url : 
+3. Test with the url : Let's create user Manager and Admin
 
-| API                                    | Access |
-|----------------------------------------|--------|
-| `http://localhost:8080/api/user/test1` | Yes    |
-| `http://localhost:8080/api/user/test2` | Yes    |
-| `http://localhost:8080/api/user/test3` | No     |
+| API                                 | Access |
+|-------------------------------------|--------|
+| `http://localhost:8080/api/anyone`  | Yes    |
+| `http://localhost:8080/api/manager` | Yes    |
+| `http://localhost:8080/api/admin`   | No     |
 
