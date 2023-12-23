@@ -27,17 +27,18 @@ public class UserController {
     }
 
 
-    @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_MANAGER')")
     @GetMapping("/manager")
     public ResponseEntity<?> getTestAPI2(Principal principal){
 
-        return ResponseEntity.ok(principal.getName()+" : All data from backend"+ userRepo.findAll());
+        return ResponseEntity.ok(principal.getName()+" : is accessing manager api. All data from backend"+ userRepo.findAll());
     }
 
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+
+    @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
     @GetMapping("/admin")
     public ResponseEntity<?> getTestAPI3(Principal principal){
-        return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
+        return ResponseEntity.ok(principal.getName()+" : is accessing admin api. All data from backend"+ userRepo.findAll());
     }
 }

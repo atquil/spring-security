@@ -139,7 +139,6 @@ authentication, authorization, and other security features for your applications
    ```
 5. Let's start the application and check these url `http://localhost:8080/h2-console`, and you can see that the user `atquil` is present in the database
 
-![h2-console.png](src%2Fmain%2Fresources%2Fimages%2Fh2-console.png)
 
 ### Part 3: Configuring `SecurityConfig`, to use this user to access the `api`
 
@@ -235,10 +234,13 @@ authentication, authorization, and other security features for your applications
        @Order(2)
        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
            return httpSecurity
-                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                   .userDetailsService(jpaUserDetailsManagerConfig)
-                   .formLogin(withDefaults())
-                   .build();
+                    .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                    .csrf(AbstractHttpConfigurer::disable) //CRSF protection is a crucial security measure to prevent Cross-Site Forgery attacks. Hence, it’s advisable to include the CRSF token in the request header of state-changing operations.
+                    .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                    .userDetailsService(jpaUserDetailsManagerConfig)
+                    .formLogin(withDefaults())
+                    .httpBasic(withDefaults())
+                    .build();
        }
    
       //...
@@ -256,27 +258,29 @@ authentication, authorization, and other security features for your applications
    public class UserController {
    
        private final UserRepo userRepo;
-       //Everyone can access
+   
        @GetMapping("/anyone")
        public ResponseEntity<?> getTestAPI1(){
            return ResponseEntity.ok("Response");
        }
    
-       //Accessed only with the role MANAGER AND ADMIN
-       @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
-       @GetMapping("/MANAGER")
+   
+       @PreAuthorize("hasRole('ROLE_MANAGER')")
+       @GetMapping("/manager")
        public ResponseEntity<?> getTestAPI2(Principal principal){
    
-           return ResponseEntity.ok(principal.getName()+" : All data from backend"+ userRepo.findAll());
+           return ResponseEntity.ok(principal.getName()+" : is accessing manager api. All data from backend"+ userRepo.findAll());
        }
    
-       //Accessed only with the role ADMIN
-       @PreAuthorize("hasRole('ROLE_ADMIN')")
+   
+      
+       @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
        @GetMapping("/admin")
        public ResponseEntity<?> getTestAPI3(Principal principal){
-           return ResponseEntity.ok("User:"+principal.getName()+" is an owner");
+           return ResponseEntity.ok(principal.getName()+" : is accessing admin api. All data from backend"+ userRepo.findAll());
        }
    }
+
    ```
 2. Also add `@EnableMethodSecurity` in securityConfig file
 
