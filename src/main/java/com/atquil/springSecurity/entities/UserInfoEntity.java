@@ -20,7 +20,7 @@ public class UserInfoEntity {
 
     @Id
     @GeneratedValue //It will find the best suitable match based on what kind of db we are using
-    private String id;
+    private Long id;
 
     @Column(name = "USER_NAME")
     private String userName;
@@ -32,9 +32,9 @@ public class UserInfoEntity {
     @Column(name = "MOBILE_NUMBER")
     private String mobileNumber;
 
-    @Enumerated(EnumType.STRING)
+   // @Enumerated(EnumType.STRING)
     @Column(nullable = false, name = "ROLE")
-    private UserRole role;
+    private String role;
 
     @Column(nullable = false, name = "PASSWORD")
     private String password;

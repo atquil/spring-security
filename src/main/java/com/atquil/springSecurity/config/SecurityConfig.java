@@ -105,9 +105,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain tokenSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
         return httpSecurity
-                .securityMatcher(new AntPathRequestMatcher("/token"))
+                .securityMatcher(new AntPathRequestMatcher("/token/**"))
                 .csrf(csrf->csrf.disable())
-
                 .authorizeHttpRequests(auth ->
                         auth.anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -115,6 +114,7 @@ public class SecurityConfig {
                     ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
                     ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
                 })
+               // .formLogin(withDefaults())
                 .httpBasic(withDefaults())
                 .build();
     }

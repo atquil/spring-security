@@ -10,6 +10,6 @@ import java.util.Optional;
  * @author atquil
  */
 @Repository
-public interface UserInfoRepo extends JpaRepository<UserInfoEntity,String> {
+public interface UserInfoRepo extends JpaRepository<UserInfoEntity,Long> {
     Optional<UserInfoEntity> findByEmailId(String userEmailId);
 }

@@ -5,7 +5,7 @@ package com.atquil.springSecurity.enums;
  */
 public enum UserRole {
 
-    ADMIN,
-    MANAGER,
-    USER
+    ROLE_ADMIN,
+    ROLE_MANAGER,
+    ROLE_USER
 }

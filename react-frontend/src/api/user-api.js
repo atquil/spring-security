@@ -25,7 +25,7 @@ export const loginUser = (userInfo) => {
 
     const authHeader =  window.btoa(userInfo.userEmail+":"+userInfo.userPassword);
     console.log("----",authHeader);
-    return basicAuthAPI.post('/token',{
+    return basicAuthAPI.get('/token',{
         headers: { 
             'Authorization': 'Basic '+ authHeader,
         }
@@ -43,7 +43,7 @@ export const loginUser = (userInfo) => {
 
 export const getAllUser = () => {
     console.log("In here");
-    return api.get('/api/all-user').then((response) => {
+    return api.post('/api/all-user').then((response) => {
         return response.data ?? {};
     }).catch(error => {
         throw new Error(" No user found");

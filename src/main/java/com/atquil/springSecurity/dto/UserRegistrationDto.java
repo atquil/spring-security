@@ -10,4 +10,4 @@ public record UserRegistrationDto (String userName,
                                    String userEmail,
                                    String userMobileNo,
                                    String userPassword,
-                                   UserRole userRole){}
+                                   String userRole){}

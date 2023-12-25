@@ -36,7 +36,7 @@ public class UserController {
         return ResponseEntity.ok(userInfoService.getUserDetailsUsingEmail(userLoginUsingEmailDto));
     }
 
-    @PostMapping("/token")
+    @GetMapping ("/token")
     public ResponseEntity<String> generateJWTToken(Authentication authentication){
         //This api will take value from basic authentication, and generate the token
         String token = tokenGenerator.generateToken(authentication);
