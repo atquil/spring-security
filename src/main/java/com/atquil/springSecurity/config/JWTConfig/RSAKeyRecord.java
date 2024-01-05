@@ -1,4 +1,4 @@
-package com.atquil.springSecurity.config;
+package com.atquil.springSecurity.config.JWTConfig;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

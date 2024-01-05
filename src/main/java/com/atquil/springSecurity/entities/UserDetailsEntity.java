@@ -1,10 +1,8 @@
 package com.atquil.springSecurity.entities;
 
-import com.atquil.springSecurity.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Generated;
 import lombok.NoArgsConstructor;
 
 /**
@@ -15,8 +13,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name="USER_INFO")
-public class UserInfoEntity {
+@Table(name="USER_DETAILS")
+public class UserDetailsEntity {
 
     @Id
     @GeneratedValue //It will find the best suitable match based on what kind of db we are using
@@ -26,15 +24,14 @@ public class UserInfoEntity {
     private String userName;
 
 
-    @Column(nullable = false, name = "EMAIL")
+    @Column(nullable = false, name = "EMAIL", unique = true)
     private String emailId;
 
     @Column(name = "MOBILE_NUMBER")
     private String mobileNumber;
 
-   // @Enumerated(EnumType.STRING)
-    @Column(nullable = false, name = "ROLE")
-    private String role;
+    @Column(nullable = false, name = "ROLES")
+    private String roles;
 
     @Column(nullable = false, name = "PASSWORD")
     private String password;

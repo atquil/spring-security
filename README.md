@@ -266,11 +266,11 @@ public class UserInfoMapper {
 
     public UserInfoEntity convertToEntity(UserRegistrationDto userRegistrationDto) {
 
-        UserInfoEntity userInfoEntity = new UserInfoEntity();
-        userInfoEntity.setUserName(userRegistrationDto.userName());
-        userInfoEntity.setEmailId(userRegistrationDto.userEmail());
-        userInfoEntity.setMobileNumber(userRegistrationDto.userMobileNo());
-        return userInfoEntity;
+        UserInfoEntity userDetailsEntity = new UserInfoEntity();
+        userDetailsEntity.setUserName(userRegistrationDto.userName());
+        userDetailsEntity.setEmailId(userRegistrationDto.userEmail());
+        userDetailsEntity.setMobileNumber(userRegistrationDto.userMobileNo());
+        return userDetailsEntity;
     }
 }
 ```
@@ -290,13 +290,13 @@ public class UserRegistrationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User with emailId:"+userRegistrationDto.userEmail()+" already exist");
         }
         // Now Map the DTO to Entities
-        UserInfoEntity userInfoEntity = userInfoMapper.convertToEntity(userRegistrationDto);
+        UserInfoEntity userDetailsEntity = userInfoMapper.convertToEntity(userRegistrationDto);
         //About password, we will have to encode it then save it.
 
-        userInfoEntity.setPassword(userRegistrationDto.userPassword()); // Need to encrypt
+        userDetailsEntity.setPassword(userRegistrationDto.userPassword()); // Need to encrypt
         //Save the user
 
-        UserInfoEntity savedUserDetails = userInfoRepo.save(userInfoEntity);
+        UserInfoEntity savedUserDetails = userInfoRepo.save(userDetailsEntity);
         return  savedUserDetails.getUserName()+" account has been created";
     }
 
@@ -471,8 +471,8 @@ public String getUserDetailsUsingEmail(UserLoginUsingEmailDto userLoginUsingEmai
         if(user.isEmpty()){
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, userLoginUsingEmailDto.userEmail()+ " not found. Please consider registering");
         }
-        UserInfoEntity userInfoEntity = user.get();
-        return userInfoEntity.getUserName();
+        UserInfoEntity userDetailsEntity = user.get();
+        return userDetailsEntity.getUserName();
         
     }
 ```
@@ -849,3 +849,7 @@ export default Signup;
 - Add Material Ui in your project : `yarn add @mui/material @emotion/react @emotion/styled`
 - Get the signInPage form here: https://github.com/mui/material-ui/tree/v5.14.17/docs/data/material/getting-started/templates/sign-in
 - Create a Component `SignIn.js`
+- Add icons : `yarn add @mui/icons-material @mui/material @emotion/styled @emotion/react`
+
+
+Role vs Scope

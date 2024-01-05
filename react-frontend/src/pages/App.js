@@ -1,12 +1,11 @@
 import React from 'react';
-import WelcomePage from '../component/WelcomePage';
 import { Route, RouterProvider, createBrowserRouter,Navigate } from 'react-router-dom';
 import './App.css';
-import Dashboard from '../component/Dashboard';
-import SignIn from '../component/SignIn';
-import SignUp from '../component/SignUp';
+import Dashboard from './Dashboard';
+import SignIn from './SignIn';
+import SignUp from './SignUp';
 const router = createBrowserRouter([
-  { path: '/', element: <WelcomePage /> },
+  { path: '/', element: <SignIn /> },
   { path: '/signup', element: <SignUp /> },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/signIn', element: <SignIn /> },
@@ -16,7 +15,7 @@ function App() {
   return (
     <div className="App">
       <RouterProvider router ={router}>
-        <Route path="/" element={<WelcomePage />} />
+        <Route path="/" element={<SignIn />} />
         <Route path="/signIn" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/dashboard" element={<Dashboard />} />

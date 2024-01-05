@@ -41,11 +41,11 @@ export default function SignUp() {
             userEmail: data.get('email'),
             userMobileNo: data.get('mobileNo'),
             userPassword: data.get('password'),
-            userRole:role
+            userRole:'ROLE_' + role
         }
         registerNewUser(userRegistrationDto)
             .then((response)=>{
-                navigate('/dashboard', { state: { userName: response } });}
+                navigate('/', { state: { userName: response } });}
             )
             .catch((error)=>setErrorMessage('Account Already Exist'));
 

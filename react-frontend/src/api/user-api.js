@@ -1,6 +1,7 @@
-import { setAuthHeader } from "../auth/login";
+import axios from "axios";
 import api from "../config/api-config";
 import basicAuthAPI from "../config/basic-auth-api-config";
+import registerApi from "../config/register-config";
 
 export const getWelcomeMessage = () => {
    
@@ -13,7 +14,7 @@ export const getWelcomeMessage = () => {
 }
 
 export const registerNewUser = (userRegistrationDto) => {
-    return api.post('/register',userRegistrationDto ).then((response) => {
+    return registerApi.post('/register',userRegistrationDto ).then((response) => {
         return response.data ?? {};
     }).catch(error => {
         console.error(error);
@@ -24,25 +25,21 @@ export const registerNewUser = (userRegistrationDto) => {
 export const loginUser = (userInfo) => {
 
     const authHeader =  window.btoa(userInfo.userEmail+":"+userInfo.userPassword);
-    console.log("----",authHeader);
     return basicAuthAPI.get('/token',{
         headers: { 
             'Authorization': 'Basic '+ authHeader,
         }
 
     }).then((response) => {
-        console.log("Sucessfully logedin");
-        window.localStorage.setItem('auth_token', response.data);
-        //setAuthHeader(response.data);
-        console.log(response.data);
+        window.localStorage.setItem('atquil_auth_token', response.data);
         return response.data ?? {};
     }).catch(error => {
         throw new Error("UserNotFound");
     });
 }
 
-export const getAllUser = () => {
-    console.log("In here");
+export const getAllUsers = () => {
+
     return api.post('/api/all-user').then((response) => {
         return response.data ?? {};
     }).catch(error => {
@@ -50,3 +47,15 @@ export const getAllUser = () => {
     });
 }
 
+export const deleteUser = (userEmail) => {
+    const params ={
+        userEmail:userEmail
+    };
+    return api.delete('/api/delete-user',{params},{
+    }).then((response) => {
+        console.log(response.data);
+        return response.data ?? {};
+    }).catch(error => {
+        throw new Error("UserNotFound");
+    });
+}

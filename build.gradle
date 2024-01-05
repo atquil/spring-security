@@ -27,6 +27,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
+    //Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
     //Database:
     runtimeOnly 'com.h2database:h2' // You can use any sql database
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'

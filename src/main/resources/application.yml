@@ -13,7 +13,10 @@ spring:
     hibernate:
       ddl-auto: create-drop #Create new db everytime i start the project
 
-
+  security:
+    filter:
+      order: 10
 rsa:
   rsa-private-key: classpath:certs/private.pem
   rsa-public-key: classpath:certs/publicKey.pem
+

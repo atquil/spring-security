@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const api = axios.create({
     baseURL: process.env.REACT_APP_BACKEND_URL,
     headers: {
@@ -10,8 +9,7 @@ const api = axios.create({
 
  api.interceptors.request.use(
      config => {
-//         // JWT Config in future
-        const token = window.localStorage.getItem('auth_token');
+        const token = window.localStorage.getItem('atquil_auth_token');
         if(token){
             config.headers['Authorization'] = `Bearer ${token}`
         }
