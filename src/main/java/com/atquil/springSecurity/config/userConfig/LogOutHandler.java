@@ -1,4 +1,4 @@
-package com.atquil.springSecurity.service;
+package com.atquil.springSecurity.config.userConfig;
 
 import com.atquil.springSecurity.config.JWTConfig.RSAKeyRecord;
 import com.atquil.springSecurity.repo.RefreshTokenRepo;

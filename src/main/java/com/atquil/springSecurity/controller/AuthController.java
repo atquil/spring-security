@@ -27,7 +27,6 @@ import java.util.List;
 public class AuthController {
 
     private final UserInfoService userInfoService;
-    private final TokenGenerator tokenGenerator;
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationDto userRegistrationDto,

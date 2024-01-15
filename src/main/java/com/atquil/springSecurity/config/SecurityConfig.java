@@ -6,7 +6,7 @@ import com.atquil.springSecurity.config.JWTConfig.RSAKeyRecord;
 import com.atquil.springSecurity.config.JWTConfig.TokenUtils;
 import com.atquil.springSecurity.config.userConfig.UserDetailsManagerConfig;
 import com.atquil.springSecurity.repo.RefreshTokenRepo;
-import com.atquil.springSecurity.service.LogOutHandler;
+import com.atquil.springSecurity.config.userConfig.LogOutHandler;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -39,11 +39,9 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.util.Arrays;
 
