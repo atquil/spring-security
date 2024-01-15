@@ -27,31 +27,50 @@ public class TokenGenerator {
     private final JwtEncoder jwtEncoder;
 
     //In UI store it in HttpOnlyCookie
-    //Access Token : To verify the user
-    public String generateAccessTOKEN (Authentication authentication) {
+    //Access RefreshTokenEntity : To verify the user
+    public String generateAccessToken(Authentication authentication) {
         log.info("Creating token for:{}",authentication.getName());
 
         Instant now = Instant.now();
 
         //Okta uses Oauth2.0 for authentication and OpenId for authorization
-        String roles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(" "));
+        String roles = getRoles(authentication);
 
         //Extract Authorization
-        String permissions = getPermissionsFromRoles(roles);
+        String scope = getPermissionsFromRoles(roles);
+
+        System.out.println("Scope:::"+scope);
+        JwtClaimsSet claims = getJwtClaimsSet(now,
+                1,
+                ChronoUnit.HOURS,
+                authentication,
+                scope);
 
 
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-                .issuer("atquil") //we are self signing the jwt
-                .issuedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS)) // expires in hour
-                .subject(authentication.getName())
-                .claim("scope", permissions) // whatever we have fixed the authority
-                .build();
-        return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        return getTokenValue(claims);
     }
 
+    public String generateRefreshToken(Authentication authentication) {
+        log.info("Creating Refresh token:{}",authentication.getName());
+
+        Instant now = Instant.now();
+
+        // We will only have Roles to get new refreshToken
+        String roles = getRoles(authentication);
+
+        JwtClaimsSet claims = getJwtClaimsSet(now,
+                30,
+                ChronoUnit.DAYS,
+                authentication,
+                "");
+        return getTokenValue(claims);
+    }
+
+    private static String getRoles(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(" "));
+    }
 
     private String getPermissionsFromRoles(String roles) {
         List<String> permissions = new ArrayList<>();
@@ -72,4 +91,29 @@ public class TokenGenerator {
         // Join the unique permissions into a space-separated string
         return String.join(" ", uniquePermissions);
     }
+
+    private static JwtClaimsSet getJwtClaimsSet(Instant now,
+                                                int amountToAdd,
+                                                ChronoUnit timeUnit,
+                                                Authentication authentication,
+                                                String scope) {
+        return JwtClaimsSet.builder()
+                .issuer("atquil")
+                .issuedAt(now)
+                .expiresAt(now.plus(amountToAdd, timeUnit)) // Minutes|| Hours || Days
+                .subject(authentication.getName())
+                .claim("scope", scope) // whatever we have fixed the authority
+                .build();
+    }
+
+    private String getTokenValue(JwtClaimsSet claims) {
+        return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+
+
+
+
+
+
 }

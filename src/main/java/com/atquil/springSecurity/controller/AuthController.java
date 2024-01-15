@@ -7,15 +7,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -35,10 +32,13 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationDto userRegistrationDto,
                                           BindingResult bindingResult){
+
+        log.info("Signup Process Started for user:{}",userRegistrationDto.userName());
         if (bindingResult.hasErrors()) {
             List<String> errorMessage = bindingResult.getAllErrors().stream()
                     .map(DefaultMessageSourceResolvable::getDefaultMessage)
                     .toList();
+            log.error("Biding Result has error:{}",errorMessage);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
         }
         return ResponseEntity.ok(userInfoService.registerUser(userRegistrationDto));
@@ -46,9 +46,22 @@ public class AuthController {
 
    // @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
     @GetMapping ("/signin")
-    public ResponseEntity<String> authenticateUser(Authentication authentication){
+    public ResponseEntity<?> authenticateUser(Authentication authentication){
         System.out.println("Role"+authentication.getAuthorities());
-        return ResponseEntity.ok(tokenGenerator.generateAccessTOKEN(authentication));
+        //return ResponseEntity.ok(tokenGenerator.generateAccessToken(authentication));
+        return ResponseEntity.ok(userInfoService.authenticateUser(authentication));
+    }
+
+
+    @PostMapping ("/refresh-token")
+    public ResponseEntity<?> getAccessToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader){
+        return ResponseEntity.ok(userInfoService.getAccessTokenUsingRefreshToken(authorizationHeader));
+    }
+
+    @PostMapping ("/logout")
+    public ResponseEntity<?> logoutUser(){
+
+        return ResponseEntity.ok("userInfoService.revokeRefreshTokensForUser(authentication.getName()");
     }
 
 

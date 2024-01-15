@@ -1,6 +1,5 @@
 package com.atquil.springSecurity.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,15 +8,11 @@ import lombok.NoArgsConstructor;
 /**
  * @author atquil
  */
+
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class AuthenticationResponse {
-
-    @JsonProperty("access_token")
-    private String accessToken;
-
-    @JsonProperty("refresh_token")
+@AllArgsConstructor
+public class RefrestTokenRequestDto {
     private String refreshToken;
 }

@@ -1,31 +1,21 @@
 package com.atquil.springSecurity.config.JWTConfig;
 
 import com.atquil.springSecurity.repo.RefreshTokenRepo;
-import com.atquil.springSecurity.service.UserInfoService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -38,11 +28,12 @@ import java.io.IOException;
 
 @RequiredArgsConstructor
 @Slf4j
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtRefreshTokenAuthenticationFilter extends OncePerRequestFilter {
 
 
     private  final RSAKeyRecord rsaKeyRecord;
     private final TokenUtils tokenUtils;
+    private final RefreshTokenRepo refreshTokenRepo;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -60,17 +51,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String token = authHeader.substring(7);
-        final Jwt jwtToken = jwtDecoder.decode(token);
+        final Jwt jwtRefreshToken = jwtDecoder.decode(token);
 
 
-        final String userName = tokenUtils.getUserName(jwtToken);
+        final String userName = tokenUtils.getUserName(jwtRefreshToken);
         System.out.println("UserName::::"+userName);
 
 
         //If not able to find the userName or if user has not authenticated
         if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
+            //Check if refreshToken isPresent in database and is valid
+            var isRefreshTokenValidInDatabase = refreshTokenRepo.findByRefreshToken(jwtRefreshToken.getTokenValue())
+                    .map(refreshTokenEntity -> !refreshTokenEntity.isExpired() && !refreshTokenEntity.isRevoked())
+                    .orElse(false);
             UserDetails userDetails = tokenUtils.userDetails(userName);
-            if(tokenUtils.isTokenValid(jwtToken,userDetails)){
+            if(tokenUtils.isTokenValid(jwtRefreshToken,userDetails) && isRefreshTokenValidInDatabase){
                 SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
 
                 UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(

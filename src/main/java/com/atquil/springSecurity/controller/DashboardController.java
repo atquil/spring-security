@@ -24,7 +24,7 @@ public class DashboardController {
     }
     @PreAuthorize("hasAnyAuthority('SCOPE_READ')")
     @PostMapping("/all-user")
-    public ResponseEntity<?> getAllUserDetails(JwtAuthenticationToken jwtAuthenticationToken){
+    public ResponseEntity<?> getAllUserDetails(){
         return ResponseEntity.ok(userInfoService.getAllUserDetails());
     }
     @PreAuthorize("hasAnyAuthority('SCOPE_DELETE')")

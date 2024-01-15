@@ -1,9 +1,12 @@
 package com.atquil.springSecurity.config;
 
 import com.atquil.springSecurity.config.JWTConfig.JwtAuthenticationFilter;
+import com.atquil.springSecurity.config.JWTConfig.JwtRefreshTokenAuthenticationFilter;
 import com.atquil.springSecurity.config.JWTConfig.RSAKeyRecord;
 import com.atquil.springSecurity.config.JWTConfig.TokenUtils;
 import com.atquil.springSecurity.config.userConfig.UserDetailsManagerConfig;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
+import com.atquil.springSecurity.service.LogOutHandler;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -23,6 +26,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -58,6 +62,8 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
     private final UserDetailsManagerConfig userDetailsManagerConfig;
     private final RSAKeyRecord rsaKeyRecord;
     private final TokenUtils tokenUtils;
+    private final RefreshTokenRepo refreshTokenRepo;
+    private final LogOutHandler logOutHandler;
     private static final Long MAX_AGE = 3600L;
     private static final int CORS_FILTER_ORDER = -102;
 
@@ -137,6 +143,45 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
     @Order(4)
+    @Bean
+    public SecurityFilterChain refreshTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
+        return httpSecurity
+                .securityMatcher(new AntPathRequestMatcher("/refresh-token/**"))
+                .csrf(csrf->csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, tokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> {
+                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                })
+                .build();
+    }
+
+    @Order(4)
+    @Bean
+    public SecurityFilterChain logOutTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
+        return httpSecurity
+                .securityMatcher(new AntPathRequestMatcher("/logout/**"))
+                .csrf(csrf->csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, tokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
+                .logout(logout->{
+                        logout.logoutUrl("/logout");
+                        logout.addLogoutHandler(logOutHandler);
+                        logout.logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext());
+                        })
+                .exceptionHandling(ex -> {
+                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                })
+                .build();
+    }
+
+    @Order(5)
     @Bean
     public SecurityFilterChain h2ConsoleSecurityFilterChainConfig(HttpSecurity httpSecurity) throws Exception{
         return httpSecurity

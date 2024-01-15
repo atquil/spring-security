@@ -20,3 +20,7 @@ rsa:
   rsa-private-key: classpath:certs/private.pem
   rsa-public-key: classpath:certs/publicKey.pem
 
+## To See the steps taken by spring security at each level
+logging:
+  level:
+    org.springframework.security: trace
