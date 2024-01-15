@@ -8,6 +8,7 @@ import com.atquil.springSecurity.entities.UserDetailsEntity;
 import com.atquil.springSecurity.mapper.UserDetailsMapper;
 import com.atquil.springSecurity.repo.RefreshTokenRepo;
 import com.atquil.springSecurity.repo.UserDetailsRepo;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -125,6 +126,8 @@ public class UserInfoService {
             revokeRefreshTokensForUser(userDetailsEntity.getEmailId());
 
             saveUserRefreshToken(userDetailsEntity,refreshToken);
+
+            //Create HttpOnly Response:
 
             return  AuthenticationResponse.builder()
                     .accessToken(accessToken)

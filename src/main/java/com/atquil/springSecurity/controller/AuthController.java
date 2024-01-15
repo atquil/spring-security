@@ -1,8 +1,11 @@
 package com.atquil.springSecurity.controller;
 
 import com.atquil.springSecurity.config.JWTConfig.TokenGenerator;
+import com.atquil.springSecurity.dto.AuthenticationResponse;
 import com.atquil.springSecurity.dto.UserRegistrationDto;
 import com.atquil.springSecurity.service.UserInfoService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,10 +48,23 @@ public class AuthController {
 
    // @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN')")
     @GetMapping ("/signin")
-    public ResponseEntity<?> authenticateUser(Authentication authentication){
+    public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
         System.out.println("Role"+authentication.getAuthorities());
         //return ResponseEntity.ok(tokenGenerator.generateAccessToken(authentication));
-        return ResponseEntity.ok(userInfoService.authenticateUser(authentication));
+        AuthenticationResponse authResponse = userInfoService.authenticateUser(authentication);
+        Cookie accessTokenCookie = new Cookie("access_token", authResponse.getAccessToken());
+        accessTokenCookie.setHttpOnly(true);
+        accessTokenCookie.setSecure(true); // set to true if using HTTPS
+        accessTokenCookie.setMaxAge(60 * 60); // set the cookie expiration time in seconds
+        response.addCookie(accessTokenCookie);
+
+        Cookie refreshTokenCookie = new Cookie("refresh_token", authResponse.getRefreshToken());
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(true); // set to true if using HTTPS
+        refreshTokenCookie.setMaxAge(60 * 60 * 24 * 30); // set the cookie expiration time in seconds
+        response.addCookie(refreshTokenCookie);
+       // return ResponseEntity.ok(userInfoService.authenticateUser(authentication));
+        return ResponseEntity.ok(authResponse);
     }
 
 

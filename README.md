@@ -853,3 +853,5 @@ export default Signup;
 
 
 Role vs Scope
+
+JWT tokens, because it's not meant to be used for session storage, because you can access it easily through JavaScript code which might lead to XSS itself if there is a vulnerable third-party library or something.
