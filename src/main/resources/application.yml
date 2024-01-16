@@ -1,0 +1,22 @@
+spring:
+  h2:
+    console:
+      enabled: true
+  datasource:
+    url: jdbc:h2:mem:atquilDB
+    username: sa
+    password:
+    driverClassName: org.h2.Driver
+  jpa:
+    spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+logging:
+  level:
+    org.springframework.security: trace
+
+rsa:
+  rsa-private-key: classpath:certs/private.pem
+  rsa-public-key: classpath:certs/publicKey.pem
+
