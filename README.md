@@ -493,7 +493,6 @@ RefreshToken Access Token: A technique to refresh the access token without requi
    }
 
    ```
-   
    - Token Type
    ```java
    public enum TokenType {
@@ -554,10 +553,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
           }
       }
    ```
-   - When we are using `Jwt` we should use `permissions` instead of `roles`. Let's modify the JwtTokenGenrator. 
-```java
 
-```
    - As Jwt token, looks for **`SCOPE_`** as a prefix for any **Authority**, thus we need to modify the Dashboard controller as well
    
    ```java
@@ -581,7 +577,6 @@ RefreshToken Access Token: A technique to refresh the access token without requi
       }
    }
 
-   
    ```
 6. Test the API for Authentication and Authorization: 
    - Authentication using `sign-in` api: `http://localhost:8080/sign-in`  with `username` and `password` will return json output
@@ -598,4 +593,135 @@ RefreshToken Access Token: A technique to refresh the access token without requi
      - `http://localhost:8080/api/admin-message` : `Admin::admin@admin.com`
   
 
-## Part 4: Modify Role With Permission 
+## Part 4: Adding JwtFilter - UseCase: User is removed, then also jwtAccessToken will work, so prevent it. 
+
+1. Create a `OncePerRequestFilter` which will scrutinize the jwt token. 
+   
+   - Access Filter
+   ```java
+   @RequiredArgsConstructor
+   @Slf4j
+   public class JwtAccessTokenFilter extends OncePerRequestFilter {
+   
+       private final RSAKeyRecord rsaKeyRecord;
+       private final JwtTokenUtils jwtTokenUtils;
+       @Override
+       protected void doFilterInternal(HttpServletRequest request,
+                                       HttpServletResponse response,
+                                       FilterChain filterChain) throws ServletException, IOException {
+   
+           try{
+               log.info("[JwtAccessTokenFilter:doFilterInternal] :: Started ");
+   
+               log.info("[JwtAccessTokenFilter:doFilterInternal]Filtering the Http Request:{}",request.getRequestURI());
+               final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+               JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
+   
+               if(!authHeader.startsWith(TokenType.Bearer.name())){
+                   filterChain.doFilter(request,response);
+                   return;
+               }
+   
+               final String token = authHeader.substring(7);
+               final Jwt jwtToken = jwtDecoder.decode(token);
+   
+   
+               final String userName = jwtTokenUtils.getUserName(jwtToken);
+   
+               if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
+                   UserDetails userDetails = jwtTokenUtils.userDetails(userName);
+                   if(jwtTokenUtils.isTokenValid(jwtToken,userDetails)){
+                       SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+   
+                       UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
+                               userDetails,
+                               null,
+                               userDetails.getAuthorities()
+                       );
+                       createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                       securityContext.setAuthentication(createdToken);
+                       SecurityContextHolder.setContext(securityContext);
+                   }
+               }
+               log.info("[JwtAccessTokenFilter:doFilterInternal] Completed");
+               filterChain.doFilter(request,response);
+           }catch (JwtValidationException jwtValidationException){
+               log.error("[JwtAccessTokenFilter:doFilterInternal] Exception due to :{}",jwtValidationException.getMessage());
+               throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE,jwtValidationException.getMessage());
+           }
+       }
+   }
+
+   ```
+
+   - Common jwt-token filter helper methods
+   ```java
+   @Component
+   @RequiredArgsConstructor
+   public class JwtTokenUtils {
+   
+       public String getUserName(Jwt jwtToken){
+           return jwtToken.getSubject();
+       }
+   
+       public boolean isTokenValid(Jwt jwtToken, UserDetails userDetails){
+           final String userName = getUserName(jwtToken);
+           boolean isTokenExpired = getIfTokenIsExpired(jwtToken);
+           boolean isTokenUserSameAsDatabase = userName.equals(userDetails.getUsername());
+           return !isTokenExpired  && isTokenUserSameAsDatabase;
+   
+       }
+   
+       private boolean getIfTokenIsExpired(Jwt jwtToken) {
+           return Objects.requireNonNull(jwtToken.getExpiresAt()).isBefore(Instant.now());
+       }
+   
+       private final UserInfoRepo useruserInfoRepo;
+       public UserDetails userDetails(String emailId){
+           return useruserInfoRepo
+                   .findByEmailId(emailId)
+                   .map(UserInfoConfig::new)
+                   .orElseThrow(()-> new UsernameNotFoundException("UserEmail: "+emailId+" does not exist"));
+       }
+   }
+   
+   ```
+2. Now add the filter to the securityConfig for the `/api` inside securityConfig
+   ```java
+      @Configuration
+      @EnableWebSecurity
+      @EnableMethodSecurity
+      @RequiredArgsConstructor
+      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+      
+          //.....
+          private final RSAKeyRecord rsaKeyRecord;
+          private final JwtTokenUtils jwtTokenUtils;
+      
+          // .....
+          @Order(2)
+          @Bean
+          public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
+              return httpSecurity
+                      .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                      .csrf(csrf -> csrf.disable())
+                      .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                      .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                      .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord, jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
+                      .exceptionHandling(ex -> {
+                          log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
+                          ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                          ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                      })
+                      .build();
+             // ..
+          }
+      }
+   
+   ```
+3. Testing:
+   - [Success] Test with the same API  
+   - [Failure] After creating the token , delete the user or Wait for expiry. 
+
+## Part 5 : `Refresh token` logic, using which you can create recurring `Access Token` 
