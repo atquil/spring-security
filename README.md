@@ -15,15 +15,13 @@ authentication, authorization, and other security features for your applications
 
 ###  Spring Security - `Advanced`
 
-OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifies how tokens are transferred, while JWT defines a token format
 
-| Sr.No | Security Type<br/>(repo)                                                     | Youtube Tutorial   | Description                                                                      |
-|-------|------------------------------------------------------------------------------|--------------------|----------------------------------------------------------------------------------|
-| 1     | OAuth 2.0                                                                    |                    |                                                                                  |
-| 2     | [Jwt using oauth](https://github.com/atquil/spring-security/tree/JWT-oauth2) |                    | Includes, login, logut, signup, accessToken, refreshToken, openssl and much more |
-| 3     | SSO                                                                          |                    |                                                                                  |
-| 4     | API Based                                                                    |                    |                                                                                  |
-| 5     | SAML                                                                         |                    |                                                                                  |
-| 6     | Kerberos                                                                     |                    |                                                                                  |
+| Sr.No | Security Type<br/>(repo)                                                        | Youtube Tutorial   | Description                                                                      |
+|-------|---------------------------------------------------------------------------------|--------------------|----------------------------------------------------------------------------------|
+| 1     | [Jwt using oauth2.0](https://github.com/atquil/spring-security/tree/JWT-oauth2) |                    | Includes, login, logut, signup, accessToken, refreshToken, openssl and much more |
+| 2     | SSO                                                                             |                    |                                                                                  |
+| 3     | API Based                                                                       |                    |                                                                                  |
+| 4     | SAML                                                                            |                    |                                                                                  |
+| 5     | Kerberos                                                                        |                    |                                                                                  |
 
 
