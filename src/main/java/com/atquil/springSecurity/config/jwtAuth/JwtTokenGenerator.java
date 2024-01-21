@@ -32,16 +32,27 @@ public class JwtTokenGenerator {
 
         log.info("[JwtTokenGenerator:generateAccessToken] Token Creation Started for:{}", authentication.getName());
 
-        Instant now = Instant.now();
-
         String roles = getRoles(authentication);
 
         String permissions = getPermissionsFromRoles(roles);
 
-        JwtClaimsSet claims = getJwtClaimsSet(now,
+        JwtClaimsSet claims = getJwtClaimsSet(
+                15,
+                ChronoUnit.MINUTES,
                 authentication,
                 permissions);
 
+        return getTokenValue(claims);
+    }
+
+    public String generateRefreshToken(Authentication authentication) {
+        log.info("[JwtTokenGenerator:generateRefreshToken] Token Creation Started for:{}",authentication.getName());
+
+        JwtClaimsSet claims = getJwtClaimsSet(
+                60,
+                ChronoUnit.DAYS,
+                authentication,
+                "REFRESH_TOKEN");
         return getTokenValue(claims);
     }
 
@@ -51,13 +62,14 @@ public class JwtTokenGenerator {
                 .collect(Collectors.joining(" "));
     }
 
-    private static JwtClaimsSet getJwtClaimsSet(Instant now,
+    private static JwtClaimsSet getJwtClaimsSet(int duration,
+                                                ChronoUnit chronoUnit,
                                                 Authentication authentication,
                                                 String scope) {
         return JwtClaimsSet.builder()
                 .issuer("atquil")
-                .issuedAt(now)
-                .expiresAt(now.plus(5, ChronoUnit.MINUTES)) // Minutes
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(duration, chronoUnit)) // Minutes
                 .subject(authentication.getName())
                 .claim("scope", scope) // whatever we have fixed the authority
                 .build();
@@ -83,6 +95,5 @@ public class JwtTokenGenerator {
 
         return String.join(" ", permissions);
     }
-
 
 }

@@ -396,10 +396,10 @@ RefreshToken Access Token: A technique to refresh the access token without requi
 
    
    ```
-4. Now let's create a **JwtTokenGenerator** to generate **access-token**, also when we are using `jwt`, we should use **permissions** instead of roles 
+4. Now let's create a **JwtTokenGenerator** to generate **access-token**, also when we are using `jwt`, we should use **permissions** instead of roles
 
    ```java
-   @Service
+import java.time.temporal.ChronoUnit;    @Service
    @RequiredArgsConstructor
    @Slf4j
    public class JwtTokenGenerator {
@@ -414,29 +414,32 @@ RefreshToken Access Token: A technique to refresh the access token without requi
            Instant now = Instant.now();
    
            String roles = getRoles(authentication);
-           
+   
            String permissions = getPermissionsFromRoles(roles);
    
-           JwtClaimsSet claims = getJwtClaimsSet(now,
+           JwtClaimsSet claims = getJwtClaimsSet(
+                   15,
+                   ChronoUnit.MINUTES,
                    authentication,
                    permissions);
    
            return getTokenValue(claims);
        }
-   
+       
        private static String getRoles(Authentication authentication) {
            return authentication.getAuthorities().stream()
                    .map(GrantedAuthority::getAuthority)
                    .collect(Collectors.joining(" "));
        }
    
-       private static JwtClaimsSet getJwtClaimsSet(Instant now,
+       private static JwtClaimsSet getJwtClaimsSet(int duration,
+                                                   ChronoUnit chronoUnit,
                                                    Authentication authentication,
                                                    String scope) {
            return JwtClaimsSet.builder()
                    .issuer("atquil")
-                   .issuedAt(now)
-                   .expiresAt(now.plus(5, ChronoUnit.MINUTES)) // Minutes
+                   .issuedAt(Instant.now())
+                   .expiresAt(Instant.now().plus(duration, chronoUnit)) // Minutes
                    .subject(authentication.getName())
                    .claim("scope", scope) // whatever we have fixed the authority
                    .build();
@@ -445,7 +448,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
        private String getTokenValue(JwtClaimsSet claims) {
            return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
        }
-       
+   
        //Permissions for jwt
        private String getPermissionsFromRoles(String roles) {
            Set<String> permissions = new HashSet<>();
@@ -463,10 +466,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
            return String.join(" ", permissions);
        }
    
-   
    }
-
-   
    ```
 5. Now let's create a **`/sign-in`** endpoint , and it's related service, which will return **access-token**. 
 
@@ -482,7 +482,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
        private String accessToken;
        
        @JsonProperty("access_token_expiry")
-       private String accessTokenExpiry;
+       private int accessTokenExpiry;
    
        @JsonProperty("token_type")
        private TokenType tokenType;
@@ -529,7 +529,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
               {
                   //Return 500, as error to avoid guessing by malicious actors. 
       
-                  var userDetailsEntity = userInfoRepo.findByEmailId(authentication.getName())
+                  var userInfoEntity = userInfoRepo.findByEmailId(authentication.getName())
                           .orElseThrow(()->{
                               log.error("[AuthService:userSignInAuth] User :{} not found",authentication.getName());
                               return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again ");});
@@ -537,11 +537,11 @@ RefreshToken Access Token: A technique to refresh the access token without requi
       
                   String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
       
-                  log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userDetailsEntity.getUserName());
+                  log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
                   return  AuthResponseDto.builder()
                           .accessToken(accessToken)
-                          .accessTokenExpiry("60")
-                          .userName(userDetailsEntity.getUserName())
+                          .accessTokenExpiry(15 * 60)
+                          .userName(userInfoEntity.getUserName())
                           .tokenType(TokenType.Bearer)
                           .build();
       
@@ -724,4 +724,346 @@ RefreshToken Access Token: A technique to refresh the access token without requi
    - [Success] Test with the same API  
    - [Failure] After creating the token , delete the user or Wait for expiry. 
 
-## Part 5 : `Refresh token` logic, using which you can create recurring `Access Token` 
+## Part 5 : `Refresh token ` using `HttpOnly` Cookie. 
+
+1. Let's modify the `entity` to accommodate `RefreshToken`:
+   - Add `RefreshTokenEntity`
+   ```java
+      @Entity
+      @Data
+      @Builder
+      @NoArgsConstructor
+      @AllArgsConstructor
+      @Table(name="REFRESH_TOKENS")
+      public class RefreshTokenEntity {
+      
+          @Id
+          @GeneratedValue
+          private Long id;
+          // Increase the length to a value that can accommodate your actual token lengths
+          @Column(name = "REFRESH_TOKEN", nullable = false, length = 10000)
+          private String refreshToken;
+      
+          @Column(name = "REVOKED")
+          private boolean revoked;
+      
+          @ManyToOne
+          @JoinColumn(name = "user_id",referencedColumnName = "id")
+          private UserInfoEntity user;
+      
+      }
+   ```
+   - Let's add `RefreshTokenEntity` to  `UserInfoEntity`
+   ```java
+   @Data
+   @NoArgsConstructor
+   @AllArgsConstructor
+   @Entity
+   @Table(name="USER_INFO")
+   public class UserInfoEntity {
+      //....
+   
+       // Many-to-One relationship with RefreshTokenEntity
+       @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+       private List<RefreshTokenEntity> refreshTokens;
+   }
+   
+   ```
+   - Let's add a `RefreshTokenRepo` for hibernate mapping
+   ```java
+   @Repository
+   public interface RefreshTokenRepo extends JpaRepository<RefreshTokenEntity, Long> {
+   }
+
+   ```
+   
+
+2. Create a `refreshTokenGenerator` method in `JwtTokenGenerator`, which will give us `refreshToken` used to pull `access_token`
+
+   ```java
+   @Service
+   @RequiredArgsConstructor
+   @Slf4j
+   public class JwtTokenGenerator {
+   
+   
+      //....
+       public String generateRefreshToken(Authentication authentication) {
+           log.info("[JwtTokenGenerator:generateRefreshToken] Refresh token generation process started for:{}", authentication.getName());
+   
+           JwtClaimsSet claims = getJwtClaimsSet(
+                   60,
+                   ChronoUnit.DAYS,
+                   authentication,
+                   "REFRESH_TOKEN");
+           return getTokenValue(claims);
+       }
+       
+       // ....
+   }
+   ```
+2. Let's modify `getJwtTokensAfterAuthentication` method which will return accessToken as well as refreshToken. 
+
+   ```java
+   @Service
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthService {
+   
+       //...
+       private final RefreshTokenRepo refreshTokenRepo;
+       public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication) {
+           try
+           {
+              //....
+               String refreshToken = jwtTokenGenerator.generateRefreshToken(authentication);
+   
+               //Let's save the refreshToken as well
+               saveUserRefreshToken(userInfoEntity,refreshToken);
+               log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
+               return  AuthResponseDto.builder()
+                       .accessToken(accessToken)
+                       .accessTokenExpiry("60")
+                       .userName(userInfoEntity.getUserName())
+                       .tokenType(TokenType.Bearer)
+                       .build();
+   
+   
+           }catch (Exception e){
+               log.error("[AuthService:userSignInAuth]Exception while authenticating the user due to :"+e.getMessage());
+               throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again");
+           }
+       }
+   
+       private void saveUserRefreshToken(UserInfoEntity userInfoEntity, String refreshToken) {
+           var refreshTokenEntity = RefreshTokenEntity.builder()
+                   .user(userInfoEntity)
+                   .refreshToken(refreshToken)
+                   .revoked(false)
+                   .build();
+           refreshTokenRepo.save(refreshTokenEntity);
+       }
+   }
+   
+   ```
+
+3. Now let's return the `refresh-token` using **`HttpOnlyCookie`**
+
+   - Add HttpServletReponse in the `/sign-in` api. 
+   ```java
+   @RestController
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthController {
+   
+      private final AuthService authService;
+      @PostMapping("/sign-in")
+      public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
+         return ResponseEntity.ok(authService.getJwtTokensAfterAuthentication(authentication,response));
+      }
+   }
+   ```
+   
+   - Modify the method to create a cookie. 
+   ```java
+   @Service
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthService {
+   
+    
+       public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication, HttpServletResponse response) {
+               //..
+               String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+               String refreshToken = jwtTokenGenerator.generateRefreshToken(authentication);
+               //..
+               creatRefreshTokenCookie(response,refreshToken);
+   
+               //....
+       }
+   
+       private Cookie creatRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+           Cookie refreshTokenCookie = new Cookie("refresh_token",refreshToken);
+           refreshTokenCookie.setHttpOnly(true);
+           refreshTokenCookie.setSecure(true);
+           refreshTokenCookie.setMaxAge(15 * 24 * 60 * 60 ); // in seconds
+           response.addCookie(refreshTokenCookie);
+           return refreshTokenCookie;
+       }
+   
+   }
+   
+   ```
+4. Now let's create the API which will use the `refresh-token` to get new `access-token`
+
+   - Create the Api
+   ```java
+   @RestController
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthController {
+   
+      private final UserInfoService userInfoService;
+   
+       //...
+      @PreAuthorize("hasAuthority('SCOPE_REFRESH_TOKEN')")
+      @PostMapping ("/refresh-token")
+      public ResponseEntity<?> getAccessToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader){
+         return ResponseEntity.ok(authService.getAccessTokenUsingRefreshToken(authorizationHeader));
+      }
+      
+   
+   }
+   ```
+   - Now Add the method
+   ```java
+   @Service
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthService {
+   
+    //..
+   
+       public Object getAccessTokenUsingRefreshToken(String authorizationHeader) {
+   
+           if(!authorizationHeader.startsWith(TokenType.Bearer.name())){
+               return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please verify your token");
+           }
+   
+           final String refreshToken = authorizationHeader.substring(7);
+   
+           var refreshTokenEntity = refreshTokenRepo.findByRefreshToken(refreshToken)
+                   .filter(tokens-> !tokens.isRevoked())
+                   .orElseThrow(()-> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Refresh token revoked"));
+   
+           UserInfoEntity userInfoEntity = refreshTokenEntity.getUser();
+           Authentication authentication =  createAuthentication(userInfoEntity);
+           
+           String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+   
+           return  AuthResponseDto.builder()
+                   .accessToken(accessToken)
+                   .accessTokenExpiry(5 * 60)
+                   .userName(userInfoEntity.getUserName())
+                   .tokenType(TokenType.Bearer)
+                   .build();
+       }
+   
+       private static Authentication createAuthentication(UserInfoEntity userInfoEntity) {
+           // Extract user details from UserDetailsEntity
+           String username = userInfoEntity.getEmailId();
+           String password = userInfoEntity.getPassword();
+           String roles = userInfoEntity.getRoles();
+   
+           // Extract authorities from roles (comma-separated)
+           String[] roleArray = roles.split(",");
+           GrantedAuthority[] authorities = Arrays.stream(roleArray)
+                   .map(role -> (GrantedAuthority) role::trim)
+                   .toArray(GrantedAuthority[]::new);
+           
+           return new UsernamePasswordAuthenticationToken(username, password, Arrays.asList(authorities));
+       }
+   }
+   
+   ```
+5. Now let's create a `Filter` for `refresh-token api`
+
+   - Filter 
+   ```java
+   @RequiredArgsConstructor
+   @Slf4j
+   public class JwtRefreshTokenAuthenticationFilter extends OncePerRequestFilter {
+   
+   
+      private  final RSAKeyRecord rsaKeyRecord;
+      private final JwtTokenUtils jwtTokenUtils;
+      private final RefreshTokenRepo refreshTokenRepo;
+      @Override
+      protected void doFilterInternal(HttpServletRequest request,
+                                      HttpServletResponse response,
+                                      FilterChain filterChain) throws ServletException, IOException {
+   
+         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+         JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
+   
+         if(!authHeader.startsWith("Bearer ")){
+            filterChain.doFilter(request,response);
+            return;
+         }
+   
+         final String token = authHeader.substring(7);
+         final Jwt jwtRefreshToken = jwtDecoder.decode(token);
+   
+   
+         final String userName = jwtTokenUtils.getUserName(jwtRefreshToken);
+   
+   
+         if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
+            //Check if refreshToken isPresent in database and is valid
+            var isRefreshTokenValidInDatabase = refreshTokenRepo.findByRefreshToken(jwtRefreshToken.getTokenValue())
+                    .map(refreshTokenEntity -> !refreshTokenEntity.isRevoked())
+                    .orElse(false);
+   
+            UserDetails userDetails = jwtTokenUtils.userDetails(userName);
+            if(jwtTokenUtils.isTokenValid(jwtRefreshToken,userDetails) && isRefreshTokenValidInDatabase){
+               SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+   
+               UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
+                       userDetails,
+                       null,
+                       userDetails.getAuthorities()
+               );
+   
+               createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+               securityContext.setAuthentication(createdToken);
+               SecurityContextHolder.setContext(securityContext);
+            }
+         }
+   
+         filterChain.doFilter(request,response);
+      }
+   }
+   
+   ```
+   - Now add that filter to `SecurityConfig`: 
+   ```java
+   @Configuration
+   @EnableWebSecurity
+   @EnableMethodSecurity
+   @RequiredArgsConstructor
+   @Slf4j
+   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+   
+       private final UserInfoManagerConfig userInfoManagerConfig;
+       private final RSAKeyRecord rsaKeyRecord;
+       private final JwtTokenUtils jwtTokenUtils;
+       private final RefreshTokenRepo refreshTokenRepo;
+   
+      // ..
+       @Order(2)
+       @Bean
+       public SecurityFilterChain refreshTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
+           return httpSecurity
+                   .securityMatcher(new AntPathRequestMatcher("/refresh-token/**"))
+                   .csrf(csrf->csrf.disable())
+                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                   .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, jwtTokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
+                   .exceptionHandling(ex -> {
+                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                   })
+                   .build();
+       }
+       // ..
+   }
+
+   ```
+6. Test the api : 
+   - Sign-in using admin : http://localhost:8080/sign-in
+   - Copy the `refresh-token` from `cookie`
+   - Use the `refresh-token` to get new `access-token`: http://localhost:8080/refresh-token
+   - Access any of the `admin-api` using it : http://localhost:8080/api/admin-message
+
+### `Sign-out` and `Revoke` the token

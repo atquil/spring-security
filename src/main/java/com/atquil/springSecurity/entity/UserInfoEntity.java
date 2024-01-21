@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * @author atquil
  */
@@ -34,4 +36,8 @@ public class UserInfoEntity {
 
     @Column(nullable = false, name = "PASSWORD")
     private String password;
+
+    // Many-to-One relationship with RefreshTokenEntity
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<RefreshTokenEntity> refreshTokens;
 }

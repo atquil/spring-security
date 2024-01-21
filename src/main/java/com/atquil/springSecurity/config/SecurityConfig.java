@@ -1,8 +1,10 @@
 package com.atquil.springSecurity.config;
 
 import com.atquil.springSecurity.config.jwtAuth.JwtAccessTokenFilter;
+import com.atquil.springSecurity.config.jwtAuth.JwtRefreshTokenAuthenticationFilter;
 import com.atquil.springSecurity.config.jwtAuth.JwtTokenUtils;
 import com.atquil.springSecurity.config.userConfig.UserInfoManagerConfig;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -50,6 +52,7 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
     private final UserInfoManagerConfig userInfoManagerConfig;
     private final RSAKeyRecord rsaKeyRecord;
     private final JwtTokenUtils jwtTokenUtils;
+    private final RefreshTokenRepo refreshTokenRepo;
 
     @Order(1)
     @Bean
@@ -69,6 +72,22 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
     @Order(2)
     @Bean
+    public SecurityFilterChain refreshTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
+        return httpSecurity
+                .securityMatcher(new AntPathRequestMatcher("/refresh-token/**"))
+                .csrf(csrf->csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, jwtTokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(ex -> {
+                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                })
+                .build();
+    }
+    @Order(3)
+    @Bean
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
         return httpSecurity
                 .securityMatcher(new AntPathRequestMatcher("/api/**"))
@@ -86,7 +105,7 @@ public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFil
     }
 
 
-    @Order(3)
+    @Order(4)
     @Bean
     public SecurityFilterChain h2ConsoleSecurityFilterChainConfig(HttpSecurity httpSecurity) throws Exception{
         return httpSecurity
