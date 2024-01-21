@@ -2,9 +2,11 @@ package com.atquil.springSecurity.service;
 
 import com.atquil.springSecurity.config.jwtAuth.JwtTokenGenerator;
 import com.atquil.springSecurity.dto.AuthResponseDto;
+import com.atquil.springSecurity.dto.UserRegistrationDto;
 import com.atquil.springSecurity.entity.RefreshTokenEntity;
 import com.atquil.springSecurity.entity.UserInfoEntity;
 import com.atquil.springSecurity.enums.TokenType;
+import com.atquil.springSecurity.mapper.UserInfoMapper;
 import com.atquil.springSecurity.repo.RefreshTokenRepo;
 import com.atquil.springSecurity.repo.UserInfoRepo;
 import jakarta.servlet.http.Cookie;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * @author atquil
@@ -32,6 +35,7 @@ public class AuthService {
     private final UserInfoRepo userInfoRepo;
     private final JwtTokenGenerator jwtTokenGenerator;
     private final RefreshTokenRepo refreshTokenRepo;
+    private final UserInfoMapper userInfoMapper;
     public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication, HttpServletResponse response) {
         try
         {
@@ -123,5 +127,43 @@ public class AuthService {
         return new UsernamePasswordAuthenticationToken(username, password, Arrays.asList(authorities));
     }
 
+    public AuthResponseDto registerUser(UserRegistrationDto userRegistrationDto,HttpServletResponse httpServletResponse){
+
+        try{
+            log.info("[AuthService:registerUser]User Registration Started with :::{}",userRegistrationDto);
+
+            Optional<UserInfoEntity> user = userInfoRepo.findByEmailId(userRegistrationDto.userEmail());
+            if(user.isPresent()){
+                throw new Exception("User Already Exist");
+            }
+
+            UserInfoEntity userDetailsEntity = userInfoMapper.convertToEntity(userRegistrationDto);
+            Authentication authentication = createAuthentication(userDetailsEntity);
+
+
+            // Generate a JWT token
+            String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+            String refreshToken = jwtTokenGenerator.generateRefreshToken(authentication);
+
+            UserInfoEntity savedUserDetails = userInfoRepo.save(userDetailsEntity);
+            saveUserRefreshToken(userDetailsEntity,refreshToken);
+
+            creatRefreshTokenCookie(httpServletResponse,refreshToken);
+
+            log.info("[AuthService:registerUser] User:{} Successfully registered",savedUserDetails.getUserName());
+            return   AuthResponseDto.builder()
+                    .accessToken(accessToken)
+                    .accessTokenExpiry(5 * 60)
+                    .userName(savedUserDetails.getUserName())
+                    .tokenType(TokenType.Bearer)
+                    .build();
+
+
+        }catch (Exception e){
+            log.error("[AuthService:registerUser]Exception while registering the user due to :"+e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,e.getMessage());
+        }
+
+    }
 }
 

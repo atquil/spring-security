@@ -1148,3 +1148,147 @@ import java.time.temporal.ChronoUnit;    @Service
       }
    
    ```
+### `Sign-Up` to getAccess and RefreshToken
+
+1. Let's create a `UserRegistrationDto` 
+
+   ```java
+   public record UserRegistrationDto (
+           @NotEmpty(message = "User role must not be empty")
+           String userName,
+           String userMobileNo,
+           @NotEmpty(message = "User email must not be empty") //Neither null nor 0 size
+           @Email(message = "Invalid email format")
+           String userEmail,
+   
+           @NotEmpty(message = "User password must not be empty")
+           String userPassword,
+           @NotEmpty(message = "User role must not be empty")
+           String userRole){
+   
+   
+   }
+   ```
+2. Create a endpoint in `AuthController` to accept it and create a respective services 
+   ```java
+   @RestController
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthController {
+   
+      private final AuthService authService;
+      //..
+   
+      @PostMapping("/sign-up")
+      public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegistrationDto userRegistrationDto,
+                                            BindingResult bindingResult,HttpServletResponse httpServletResponse){
+   
+         log.info("[AuthController:registerUser]Signup Process Started for user:{}",userRegistrationDto.userName());
+         if (bindingResult.hasErrors()) {
+            List<String> errorMessage = bindingResult.getAllErrors().stream()
+                    .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                    .toList();
+            log.error("[AuthController:registerUser]Errors in user:{}",errorMessage);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
+         }
+         return ResponseEntity.ok(authService.registerUser(userRegistrationDto,httpServletResponse));
+      }
+   
+   }
+   
+   ```
+3. Add respective service : 
+
+   ```java
+   @Service
+   @RequiredArgsConstructor
+   @Slf4j
+   public class AuthService {
+   
+      //..
+       private final UserInfoMapper userInfoMapper;
+      //..
+       public AuthResponseDto registerUser(UserRegistrationDto userRegistrationDto,HttpServletResponse httpServletResponse){
+   
+           try{
+               log.info("[AuthService:registerUser]User Registration Started with :::{}",userRegistrationDto);
+   
+               Optional<UserInfoEntity> user = userInfoRepo.findByEmailId(userRegistrationDto.userEmail());
+               if(user.isPresent()){
+                   throw new Exception("User Already Exist");
+               }
+   
+               UserInfoEntity userDetailsEntity = userInfoMapper.convertToEntity(userRegistrationDto);
+               Authentication authentication = createAuthentication(userDetailsEntity);
+   
+   
+               // Generate a JWT token
+               String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+               String refreshToken = jwtTokenGenerator.generateRefreshToken(authentication);
+   
+               UserInfoEntity savedUserDetails = userInfoRepo.save(userDetailsEntity);
+               saveUserRefreshToken(userDetailsEntity,refreshToken);
+               
+               creatRefreshTokenCookie(httpServletResponse,refreshToken);
+               
+               log.info("[AuthService:registerUser] User:{} Successfully registered",savedUserDetails.getUserName());
+               return   AuthResponseDto.builder()
+                       .accessToken(accessToken)
+                       .accessTokenExpiry(5 * 60)
+                       .userName(savedUserDetails.getUserName())
+                       .tokenType(TokenType.Bearer)
+                       .build();
+   
+   
+           }catch (Exception e){
+               log.error("[AuthService:registerUser]Exception while registering the user due to :"+e.getMessage());
+               throw new ResponseStatusException(HttpStatus.BAD_REQUEST,e.getMessage());
+           }
+   
+       }
+   }
+   
+   ```
+4. Respective Mapper
+   ```java
+   @Component
+   @RequiredArgsConstructor
+   public class UserInfoMapper {
+   
+       private final PasswordEncoder passwordEncoder;
+       public UserInfoEntity convertToEntity(UserRegistrationDto userRegistrationDto) {
+           UserInfoEntity userInfoEntity = new UserInfoEntity();
+           userInfoEntity.setUserName(userRegistrationDto.userName());
+           userInfoEntity.setEmailId(userRegistrationDto.userEmail());
+           userInfoEntity.setMobileNumber(userRegistrationDto.userMobileNo());
+           userInfoEntity.setRoles(userRegistrationDto.userRole());
+           userInfoEntity.setPassword(passwordEncoder.encode(userRegistrationDto.userPassword()));
+           return userInfoEntity;
+       }
+   }
+   
+   ```
+5. Finally, add the endpoint for `SecurityConfig`
+   ```java
+       @Order(5)
+       @Bean
+       public SecurityFilterChain registerSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+           return httpSecurity
+                   .securityMatcher(new AntPathRequestMatcher("/sign-up/**"))
+                   .csrf(csrf->csrf.disable())
+                   .authorizeHttpRequests(auth ->
+                           auth.anyRequest().permitAll())
+                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                   .build();
+       }
+   ```
+6. Testing with api : http://localhost:8080/sign-up
+```json
+{
+    "userName": "Manager",
+    "userEmail": "manager1@manager.com",
+    "userMobileNo": "8888888888",
+    "userPassword": "password",
+    "userRole": "ROLE_ADMIN"
+}
+```
