@@ -1291,6 +1291,6 @@ import java.time.temporal.ChronoUnit;    @Service
     "userEmail": "manager1@manager.com",
     "userMobileNo": "8888888888",
     "userPassword": "password",
-    "userRole": "ROLE_ADMIN"
+    "userRole": "ROLE_MANAGER"
 }
 ```
