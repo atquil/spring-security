@@ -33,4 +33,5 @@ public class AuthController {
     public ResponseEntity<?> getAccessToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader){
         return ResponseEntity.ok(authService.getAccessTokenUsingRefreshToken(authorizationHeader));
     }
+
 }

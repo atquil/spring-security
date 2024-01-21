@@ -1067,3 +1067,84 @@ import java.time.temporal.ChronoUnit;    @Service
    - Access any of the `admin-api` using it : http://localhost:8080/api/admin-message
 
 ### `Sign-out` and `Revoke` the token
+
+1. Modify the `SecurityConfig` to add `logout` url
+
+   ```java
+   @Configuration
+   @EnableWebSecurity
+   @EnableMethodSecurity
+   @RequiredArgsConstructor
+   @Slf4j
+   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+   
+       //..
+       private final LogoutHandlerService logoutHandlerService;
+       @Order(4)
+       @Bean
+       public SecurityFilterChain logoutSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
+           return httpSecurity
+                   .securityMatcher(new AntPathRequestMatcher("/logout/**"))
+                   .csrf(csrf->csrf.disable())
+                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                   .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord,jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
+                   .logout(logout -> logout
+                           .logoutUrl("/logout")
+                           .addLogoutHandler(logoutHandlerService)
+                           .logoutSuccessHandler(((request, response, authentication) -> SecurityContextHolder.clearContext()))
+                   )
+                   .exceptionHandling(ex -> {
+                       log.error("[SecurityConfig:logoutSecurityFilterChain] Exception due to :{}",ex);
+                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                   })
+                   .build();
+            }
+    //..
+    }
+   ```
+2. Add Logic for revoking access
+   ```java
+   @Service
+   @Slf4j
+   @RequiredArgsConstructor
+   public class LogoutHandlerService implements LogoutHandler {
+   
+       private final RefreshTokenRepo refreshTokenRepo;
+   
+       @Override
+       public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+           final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+           if(!authHeader.startsWith("Bearer ")){
+               return;
+           }
+   
+           final String refreshToken = authHeader.substring(7);
+           var storedRefreshToken = refreshTokenRepo.findByRefreshToken(refreshToken)
+                   .map(token->{
+                       token.setRevoked(true);
+                       refreshTokenRepo.save(token);
+                       return token;
+                   })
+                   .orElse(null);
+       }
+   }
+   ```
+
+3. Now test the api using `refreshToken` : http://localhost:8080/logout
+4. **Note: If you want to revoke from all the places, you can get the userName**
+   ```java
+      @Repository
+      public interface RefreshTokenRepo extends JpaRepository<RefreshTokenEntity, Long> {
+      
+         Optional<RefreshTokenEntity> findByRefreshToken(String refreshToken);
+      
+         @Query(value = "SELECT rt.* FROM REFRESH_TOKENS rt " +
+                 "INNER JOIN USER_DETAILS ud ON rt.user_id = ud.id " +
+                 "WHERE ud.EMAIL = :userEmail and rt.revoked = false ", nativeQuery = true)
+         List<RefreshTokenEntity> findAllRefreshTokenByUserEmailId(String userEmail);
+      }
+   
+   ```

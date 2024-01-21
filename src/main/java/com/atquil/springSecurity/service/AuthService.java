@@ -122,4 +122,6 @@ public class AuthService {
 
         return new UsernamePasswordAuthenticationToken(username, password, Arrays.asList(authorities));
     }
+
 }
+
