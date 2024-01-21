@@ -14,6 +14,8 @@ The tutorial will cover the following topics:
 * **Login Logout**: A mechanism to authenticate and de-authenticate users.
 RefreshToken Access Token: A technique to refresh the access token without requiring the user to re-authenticate.
 
+OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifies how tokens are transferred, while JWT defines a token format
+
 ## Part 1: Setup Project :
 
 1. Spring Initializer : https://start.spring.io/
