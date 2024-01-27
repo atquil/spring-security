@@ -103,7 +103,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
     }
     ```
 
-3. Now, create a `userConfig` sub-package under `config` and map `UserInfoEntity`, to `UserDetails` interface. Also make all `boolean` true.
+3. Create a `UserInfoConfig` class which implements `UserDetails` interface, which **provides core user information which is later encapsulated into Authentication objects.**
 
    ```java
    @RequiredArgsConstructor
@@ -150,7 +150,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        }
    }
    ```
-4. Now create a `UserInfoManagerConfig` which implements `UserDetailsService` to load the user from entity, and map it to UserDetails. 
+4. Create a `UserInfoManagerConfig` class that implements the `UserDetailsService` interface, used to **retrieve user-related data, using loadUserByUsername(), and returns `UserDetails`**. 
 
    ```java
    @Service
@@ -175,7 +175,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    @EnableWebSecurity
    @EnableMethodSecurity
    @RequiredArgsConstructor
-   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+   public class SecurityConfig  {
    
        private final UserInfoManagerConfig userInfoManagerConfig;
    
@@ -199,6 +199,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                    .securityMatcher(new AntPathRequestMatcher(("/h2-console/**")))
                    .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
                    .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
+                    // to display the h2Console in Iframe
                    .headers(headers -> headers.frameOptions(withDefaults()).disable())
                    .build();
        }
