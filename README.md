@@ -16,58 +16,7 @@ RefreshToken Access Token: A technique to refresh the access token without requi
 
 OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifies how tokens are transferred, while JWT defines a token format
 
-<hr>
-<details>
-  <summary>
-    <div style="display: inline-block;"><h2 style="display: inline-block;">Part 1: Project Setup</h2></div>
-  </summary>
-
-1. Spring Initializer : https://start.spring.io/
-2. Dependency : `web`,  `lombock`, `validation`, `h2`, `jpa`, `oauth2`, `configuration-processor`
-
-    ```
-        implementation 'org.springframework.boot:spring-boot-starter-web'
-        compileOnly 'org.projectlombok:lombok'
-        annotationProcessor 'org.projectlombok:lombok'
-        testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-        //Validation
-        implementation 'org.springframework.boot:spring-boot-starter-validation'
-    
-        //Database:
-        runtimeOnly 'com.h2database:h2' // You can use any sql database
-        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    
-        //security:
-        //jwt
-        implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
-        annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    ```
-3. `application.yml` : Setup Database :
-
-    ```properties
-    spring:
-      h2:
-        console:
-          enabled: true
-      datasource:
-        url: jdbc:h2:mem:atquilDB
-        username: sa
-        password:
-        driverClassName: org.h2.Driver
-      jpa:
-        spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
-        show-sql: true
-        hibernate:
-          ddl-auto: create-drop
-    logging:
-      level:
-        org.springframework.security: trace 
-    ```
-
-</details>
-
-## Part 1: Setup Project :
+## Part 1: Project Setup :
 
 1. Spring Initializer : https://start.spring.io/
 2. Dependency : `web`,  `lombock`, `validation`, `h2`, `jpa`, `oauth2`, `configuration-processor`
@@ -90,7 +39,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
         annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     ```
 
-3. `application.yml` : Setup Database : 
+3. `application.yml` : Database Setup
 
     ```properties
     spring:
