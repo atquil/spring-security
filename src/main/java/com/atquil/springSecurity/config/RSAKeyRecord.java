@@ -8,6 +8,7 @@ import java.security.interfaces.RSAPublicKey;
 /**
  * @author atquil
  */
+
 @ConfigurationProperties(prefix = "rsa")
 public record RSAKeyRecord (RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey){
 

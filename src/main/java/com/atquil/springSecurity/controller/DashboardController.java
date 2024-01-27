@@ -29,7 +29,6 @@ public class DashboardController {
     @GetMapping("/manager-message")
     public ResponseEntity<String> getManagerData(Principal principal){
         return ResponseEntity.ok("Admin::"+principal.getName());
-
     }
 
     //@PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -47,3 +46,4 @@ public class DashboardController {
 
     }
 }
+
