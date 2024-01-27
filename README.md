@@ -202,10 +202,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                    .headers(headers -> headers.frameOptions(withDefaults()).disable())
                    .build();
        }
-       @Bean
-       PasswordEncoder passwordEncoder() {
-           return new BCryptPasswordEncoder();
-       }
+      
    }
 
    ```
@@ -244,6 +241,13 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
+   - As we need to encrypt the password, let's add this in **securityConfig**
+   ```java
+   @Bean
+   PasswordEncoder passwordEncoder() {
+   return new BCryptPasswordEncoder();
+   }
+   ```
 7. Add the Endpoints to access in `controller` package: `DashboardController.java`
 
     ```java
@@ -258,16 +262,14 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
             return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
        }
    
-       //@PreAuthorize("hasRole('ROLE_MANAGER')")
-       @PreAuthorize("hasAuthority('SCOPE_READ')")
+       @PreAuthorize("hasRole('ROLE_MANAGER')")
        @GetMapping("/manager-message")
        public ResponseEntity<String> getManagerData(Principal principal){
            return ResponseEntity.ok("Admin::"+principal.getName());
    
        }
    
-       //@PreAuthorize("hasRole('ROLE_ADMIN')")
-       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+       @PreAuthorize("hasRole('ROLE_ADMIN')")
        @PostMapping("/admin-message")
        public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
            return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
@@ -328,117 +330,164 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
       **Note:  encrypting the private key adds an extra layer of security, but it also means that you'll need to provide the passphrase whenever you want to use the private key for cryptographic operations.**
    
    - Add the reference of those keys, from the properties file to be used in RSAKeyRecord. [Externalise the private and public key]
-
-  
-
-   - Inside `RSAKeyRecord.class` which holds, both public and private key that will be used by JWT
-
-   ```java
-    @ConfigurationProperties(prefix = "rsa")
-    public record RSAKeyRecord (RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey){
-   
-    }
-   ```
-
-   - `EnableConfiguraitonProperties` will enable JWT to take Create a class through which you will access the key
-
-   ```java
-   
-   @EnableConfigurationProperties(RSAKeyRecord.class)
-   @SpringBootApplication
-   public class SpringSecurityApplication {
-   
-       public static void main(String[] args) {
-           SpringApplication.run(SpringSecurityApplication.class, args);
+     Inside `RSAKeyRecord.class` which holds, both public and private key that will be used by JWT
+      ```java
+       @ConfigurationProperties(prefix = "jwt")
+       public record RSAKeyRecord (RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey){
+      
        }
-   
-   }
-   ``` 
-
+      ```
+   - `EnableConfiguraitonProperties` to enable it to be found in properties file.
+      ```java
+      
+      @EnableConfigurationProperties(RSAKeyRecord.class)
+      @SpringBootApplication
+      public class SpringSecurityApplication {
+      
+          public static void main(String[] args) {
+              SpringApplication.run(SpringSecurityApplication.class, args);
+          }
+      
+      }
+      ```
    - Location of file in properties.
+     ```properties
+        jwt:
+          rsa-private-key: classpath:certs/privateKey.pem
+          rsa-public-key: classpath:certs/publicKey.pem
+     ```
+2. Let's modify `/api` to `sign-in` api, and return **accessToken**
+   ```java
+      @Configuration
+      @EnableWebSecurity
+      @EnableMethodSecurity
+      @RequiredArgsConstructor
+      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+      
+          private final UserInfoManagerConfig userInfoManagerConfig;
+          private final RSAKeyRecord rsaKeyRecord;
+      
+          @Order(1)
+          @Bean
+          public SecurityFilterChain signInSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+              return httpSecurity
+                      .securityMatcher(new AntPathRequestMatcher("/sign-in/**"))
+                      .csrf(csrf->csrf.disable())
+                      .authorizeHttpRequests(auth ->
+                              auth.anyRequest().authenticated())
+                      .userDetailsService(userInfoManagerConfig)
+                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                      .exceptionHandling(ex -> {
+                          ex.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()));
+                      })
+                      .httpBasic(withDefaults())
+                      .build();
+          }
+          
+          @Order(2)
+          @Bean
+          public SecurityFilterChain h2ConsoleSecurityFilterChainConfig(HttpSecurity httpSecurity) throws Exception{
+              return httpSecurity
+                      .securityMatcher(new AntPathRequestMatcher(("/h2-console/**")))
+                      .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
+                      .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
+                      .headers(headers -> headers.frameOptions(withDefaults()).disable())
+                      .build();
+          }
+          @Bean
+          PasswordEncoder passwordEncoder() {
+              return new BCryptPasswordEncoder();
+          }
+          
+      }
+   
+      
+      ```
 
-  ```properties
-     rsa:
-       rsa-private-key: classpath:certs/privateKey.pem
-       rsa-public-key: classpath:certs/publicKey.pem
-  ```
-
-2. Add, `encoder and decoder` for jwt token and also modify the `SecurityConfig` file, to allow `login` api, to be accessed by `UserDetailsManager` and other `API` using `Jwt token`.   
+3. Let's create a `AuthController` , to receive the `api` 
 
    ```java
-   @Configuration
-   @EnableWebSecurity
-   @EnableMethodSecurity
+   @RestController
    @RequiredArgsConstructor
-   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+   @Slf4j
+   public class AuthController {
    
-       private final UserInfoManagerConfig userInfoManagerConfig;
-       private final RSAKeyRecord rsaKeyRecord;
+       private final AuthService authService;
+       @PostMapping("/sign-in")
+       public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
    
-       @Order(1)
-       @Bean
-       public SecurityFilterChain signInSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
-           return httpSecurity
-                   .securityMatcher(new AntPathRequestMatcher("/sign-in/**"))
-                   .csrf(csrf->csrf.disable())
-                   .authorizeHttpRequests(auth ->
-                           auth.anyRequest().authenticated())
-                   .userDetailsService(userInfoManagerConfig)
-                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                   .exceptionHandling(ex -> {
-                       ex.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()));
-                   })
-                   .httpBasic(withDefaults())
-                   .build();
-       }
-       @Order(2)
-       @Bean
-       public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
-           return httpSecurity
-                   .securityMatcher(new AntPathRequestMatcher("/api/**"))
-                   .csrf(csrf->csrf.disable())
-                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                   .exceptionHandling(ex -> {
-                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                   })
-                   .build();
-       }
-   
-   
-       @Order(3)
-       @Bean
-       public SecurityFilterChain h2ConsoleSecurityFilterChainConfig(HttpSecurity httpSecurity) throws Exception{
-           return httpSecurity
-                   .securityMatcher(new AntPathRequestMatcher(("/h2-console/**")))
-                   .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
-                   .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
-                   .headers(headers -> headers.frameOptions(withDefaults()).disable())
-                   .build();
-       }
-       @Bean
-       PasswordEncoder passwordEncoder() {
-           return new BCryptPasswordEncoder();
-       }
-   
-       @Bean
-       JwtDecoder jwtDecoder(){
-           return NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
-       }
-   
-       @Bean
-       JwtEncoder jwtEncoder(){
-           JWK jwk = new RSAKey.Builder(rsaKeyRecord.rsaPublicKey()).privateKey(rsaKeyRecord.rsaPrivateKey()).build();
-           JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
-           return new NimbusJwtEncoder(jwkSource);
+           return ResponseEntity.ok(authService.getJwtTokensAfterAuthentication(authentication));
        }
    }
-
-   
    ```
-4. Now let's create a **JwtTokenGenerator** to generate **access-token**, also when we are using `jwt`, we should use **permissions** instead of roles
+4. Let's create return type of AuthResponseDto required `AuthSerivce` to return **accessToken**
+
+   ```java
+   @Data
+   @Builder
+   @AllArgsConstructor
+   @NoArgsConstructor
+   public class AuthResponseDto {
+   
+       @JsonProperty("access_token")
+       private String accessToken;
+       
+       @JsonProperty("access_token_expiry")
+       private int accessTokenExpiry;
+   
+       @JsonProperty("token_type")
+       private TokenType tokenType;
+       
+       @JsonProperty("user_name")
+       private String userName;
+   
+   }
+   ```
+   - Token Type
+   ```java
+   public enum TokenType {
+       Bearer
+   }
+   ```
+   -Token Generator
+   ```java
+   @Service
+      @RequiredArgsConstructor
+      @Slf4j
+      public class AuthService {
+      
+          private final UserInfoRepo userInfoRepo;
+          private final JwtTokenGenerator jwtTokenGenerator;
+          public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication) {
+              try
+              {
+                  //Return 500, as error to avoid guessing by malicious actors. 
+      
+                  var userInfoEntity = userInfoRepo.findByEmailId(authentication.getName())
+                          .orElseThrow(()->{
+                              log.error("[AuthService:userSignInAuth] User :{} not found",authentication.getName());
+                              return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again ");});
+      
+      
+                  String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+      
+                  log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
+                  return  AuthResponseDto.builder()
+                          .accessToken(accessToken)
+                          .accessTokenExpiry(15 * 60)
+                          .userName(userInfoEntity.getUserName())
+                          .tokenType(TokenType.Bearer)
+                          .build();
+      
+      
+              }catch (Exception e){
+                  log.error("[AuthService:userSignInAuth]Exception while authenticating the user due to :"+e.getMessage());
+                  throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again");
+              }
+          }
+      }
+   ```
+   Let's add JwtTokenGenerator in jwtAuth
 
    ```java
    import java.time.temporal.ChronoUnit;    
@@ -489,6 +538,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                    .build();
        }
    
+        //Jwt token encoder and decoder (below)
        private String getTokenValue(JwtClaimsSet claims) {
            return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
        }
@@ -501,7 +551,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                permissions.addAll(List.of("READ", "WRITE", "DELETE"));
            }
            if (roles.contains("ROLE_MANAGER")) {
-               permissions.addAll(List.of("READ", "WRITE"));
+               permissions.addAll(List.of("READ"));
            }
            if (roles.contains("ROLE_USER")) {
                permissions.add("READ");
@@ -512,116 +562,70 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
    }
    ```
-5. Now let's create a **`/sign-in`** endpoint , and it's related service, which will return **access-token**. 
-
-   - `AuthResponeDto` dto which we want to return 
-   ```java
-   @Data
-   @Builder
-   @AllArgsConstructor
-   @NoArgsConstructor
-   public class AuthResponseDto {
    
-       @JsonProperty("access_token")
-       private String accessToken;
-       
-       @JsonProperty("access_token_expiry")
-       private int accessTokenExpiry;
-   
-       @JsonProperty("token_type")
-       private TokenType tokenType;
-       
-       @JsonProperty("user_name")
-       private String userName;
-   
-   }
-
-   ```
-   - Token Type
+   Let's add token encoder and decoder
    ```java
-   public enum TokenType {
-       Bearer
-   }
-   ```
-   - Let's create a `AuthController` which will have the `/sign-in` 
-   ```java
-   @RestController
+   @Configuration
+   @EnableWebSecurity
+   @EnableMethodSecurity
    @RequiredArgsConstructor
-   @Slf4j
-   public class AuthController {
+   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
    
-       private final AuthService authService;
-       @PostMapping("/sign-in")
-       public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
+       private final UserInfoManagerConfig userInfoManagerConfig;
+       private final RSAKeyRecord rsaKeyRecord;
+       
+       //.....
    
-           return ResponseEntity.ok(authService.getJwtTokensAfterAuthentication(authentication));
+       @Bean
+       JwtDecoder jwtDecoder(){
+           return NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
+       }
+   
+       @Bean
+       JwtEncoder jwtEncoder(){
+           JWK jwk = new RSAKey.Builder(rsaKeyRecord.rsaPublicKey()).privateKey(rsaKeyRecord.rsaPrivateKey()).build();
+           JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(jwk));
+           return new NimbusJwtEncoder(jwkSource);
        }
    }
-   
    ```
-   - `AuthService` calling for business logic.
-   ```java
-      @Service
-      @RequiredArgsConstructor
-      @Slf4j
-      public class AuthService {
-      
-          private final UserInfoRepo userInfoRepo;
-          private final JwtTokenGenerator jwtTokenGenerator;
-          public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication) {
-              try
-              {
-                  //Return 500, as error to avoid guessing by malicious actors. 
-      
-                  var userInfoEntity = userInfoRepo.findByEmailId(authentication.getName())
-                          .orElseThrow(()->{
-                              log.error("[AuthService:userSignInAuth] User :{} not found",authentication.getName());
-                              return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again ");});
-      
-      
-                  String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
-      
-                  log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
-                  return  AuthResponseDto.builder()
-                          .accessToken(accessToken)
-                          .accessTokenExpiry(15 * 60)
-                          .userName(userInfoEntity.getUserName())
-                          .tokenType(TokenType.Bearer)
-                          .build();
-      
-      
-              }catch (Exception e){
-                  log.error("[AuthService:userSignInAuth]Exception while authenticating the user due to :"+e.getMessage());
-                  throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again");
-              }
-          }
-      }
-   ```
-
    - As Jwt token, looks for **`SCOPE_`** as a prefix for any **Authority**, thus we need to modify the Dashboard controller as well
-   
    ```java
    @RestController
    @RequestMapping("/api")
    @RequiredArgsConstructor
    public class DashboardController {
+       private final AdminService adminService;
+       @GetMapping("/welcome-message")
+       public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
+           return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
    
-      @GetMapping("/welcome-message")
-      public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
-         return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
+       }
    
-      }
+       //@PreAuthorize("hasRole('ROLE_MANAGER')")
+       @PreAuthorize("hasAuthority('SCOPE_READ')")
+       @GetMapping("/manager-message")
+       public ResponseEntity<String> getManagerData(Principal principal){
+           return ResponseEntity.ok("Admin::"+principal.getName());
+       }
    
-      //@PreAuthorize("hasRole('ROLE_ADMIN')")
-      @PreAuthorize("hasAuthority('SCOPE_READ')")
-      @GetMapping("/admin-message")
-      public ResponseEntity<String> getAdminData(Principal principal){
-         return ResponseEntity.ok("Admin::"+principal.getName());
+       //@PreAuthorize("hasRole('ROLE_ADMIN')")
+       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+       @PostMapping("/admin-message")
+       public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
+           return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
    
-      }
+       }
+   
+       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+       @GetMapping("/revoke-access")
+       public ResponseEntity<String> revokeAccessForUser(@RequestParam("userEmail") String userEmail){
+           return ResponseEntity.ok(adminService.revokeRefreshTokensForUser(userEmail));
+   
+       }
    }
+   ```   
 
-   ```
 6. Test the API for Authentication and Authorization: 
    - Authentication using `sign-in` api: `http://localhost:8080/sign-in`  with `username` and `password` will return json output
    ```json
@@ -633,9 +637,8 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
    - Use Access Token
-     - `http://localhost:8080/api/welcome-message` : `Welcome to the JWT Tutorial:admin@admin.comwith scope:[SCOPE_READ, SCOPE_DELETE, SCOPE_WRITE]`
-     - `http://localhost:8080/api/admin-message` : `Admin::admin@admin.com`
-  
+     - `http://localhost:8080/api/welcome-message` 
+     - `http://localhost:8080/api/admin-message` 
 
 ## Part 4: Adding JwtFilter - UseCase: User is removed, then also jwtAccessToken will work, so prevent it. 
 
