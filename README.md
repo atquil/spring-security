@@ -1135,7 +1135,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    - Use the `refresh-token` to get new `access-token`: http://localhost:8080/refresh-token
    - Access any of the `admin-api` using it : http://localhost:8080/api/admin-message
 
-## Part 5: `Sign-out` and `Revoke` the token
+## Part 6: `Sign-out` and `Revoke` the token
 
 1. Modify the `SecurityConfig` to add `logout` url
 
@@ -1217,7 +1217,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
       }
    
    ```
-## Part 6:  `Sign-Up` to getAccess and RefreshToken
+## Part 7:  `Sign-Up` to getAccess and RefreshToken
 
 1. Let's create a `UserRegistrationDto` 
 
