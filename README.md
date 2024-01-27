@@ -61,29 +61,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
         org.springframework.security: trace 
     ```
 
-4. Add the Endpoints to access in `controller` package: `DashboardController.java` 
-
-    ```java
-    @RestController
-    @RequestMapping("/api")
-    @RequiredArgsConstructor
-    public class DashboardController {
-        
-        
-        @GetMapping("/welcome-message")
-        public ResponseEntity<String> getFirstWelcomeMessage(){
-            return ResponseEntity.ok("Welcome to the JWT Tutorial");
-    
-        }
-    }
-    
-    ```
-
-5. Access the api using :`http://localhost:8080/api/welcome-message`
-    * **username**: `user` 
-    * **password**: `<check console for password>`
-
-## Part 2: Adding User to access the endpoint :
+## Part 2: Store User using JPA
 
 1. Create a `UserInfoEntity` to store User details. 
 
@@ -125,7 +103,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
     }
     ```
 
-3. Now, create a `config < userConfig` package and map `UserInfoEntity`, to `UserDetails` interface. Also make all `boolean` true.
+3. Now, create a `userConfig` sub-package under `config` and map `UserInfoEntity`, to `UserDetails` interface. Also make all `boolean` true.
 
    ```java
    @RequiredArgsConstructor
@@ -266,10 +244,45 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
-7. Test the API in PostMan
+7. Add the Endpoints to access in `controller` package: `DashboardController.java`
+
+    ```java
+   @RestController
+   @RequestMapping("/api")
+   @RequiredArgsConstructor
+   public class DashboardController {
+   private final AdminService adminService;
+   @GetMapping("/welcome-message")
+   public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
+   return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
+   
+       }
+   
+       //@PreAuthorize("hasRole('ROLE_MANAGER')")
+       @PreAuthorize("hasAuthority('SCOPE_READ')")
+       @GetMapping("/manager-message")
+       public ResponseEntity<String> getManagerData(Principal principal){
+           return ResponseEntity.ok("Admin::"+principal.getName());
+   
+       }
+   
+       //@PreAuthorize("hasRole('ROLE_ADMIN')")
+       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+       @PostMapping("/admin-message")
+       public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
+           return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
+
+        }
+
+    }
+    
+    ```
+
+8. Test the API in PostMan
    - http://localhost:8080/h2-console/ , to see if data exist in the database
    - http://localhost:8080/api/welcome-message : Accessed by all
-   - http://localhost:8080/api/admin-message: Only Admin can access
+   - http://localhost:8080/api/manager-message : Manager and Admin
+   - http://localhost:8080/api/admin-message: Only Admin
 
 
 ## Part 3: Return _Jwt Access Token_ while authenticating, and add `Roles` and `Permissions`

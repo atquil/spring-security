@@ -24,11 +24,19 @@ public class DashboardController {
 
     }
 
-    //@PreAuthorize("hasRole('ROLE_ADMIN')")
+    //@PreAuthorize("hasRole('ROLE_MANAGER')")
     @PreAuthorize("hasAuthority('SCOPE_READ')")
-    @GetMapping("/admin-message")
-    public ResponseEntity<String> getAdminData(Principal principal){
+    @GetMapping("/manager-message")
+    public ResponseEntity<String> getManagerData(Principal principal){
         return ResponseEntity.ok("Admin::"+principal.getName());
+
+    }
+
+    //@PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+    @PostMapping("/admin-message")
+    public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
+        return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
 
     }
 
