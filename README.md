@@ -252,10 +252,10 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    @RequiredArgsConstructor
    public class DashboardController {
    private final AdminService adminService;
-   @GetMapping("/welcome-message")
-   public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
-   return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
    
+        @GetMapping("/welcome-message")
+        public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
+            return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
        }
    
        //@PreAuthorize("hasRole('ROLE_MANAGER')")
