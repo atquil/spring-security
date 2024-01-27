@@ -756,7 +756,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
    ```
 
-   - Common jwt-token filter helper methods
+3. Common jwt-token filter helper methods
    ```java
    @Component
    @RequiredArgsConstructor
@@ -788,13 +788,12 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
-2. Now add the filter to the securityConfig for the `/api` inside securityConfig
    
-3. Testing:
+4. Testing:
    - [Success] Test with the same API  
    - [Failure] After creating the token , delete the user or Wait for expiry. 
 
-## Part 5 : `Refresh token ` using `HttpOnly` Cookie. 
+## Part 5 : `Refresh token ` using `HttpOnly` Cookie and store it in database
 
 1. Let's modify the `entity` to accommodate `RefreshToken`:
    - Add `RefreshTokenEntity`
@@ -919,7 +918,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
 3. Now let's return the `refresh-token` using **`HttpOnlyCookie`**
 
-   - Add HttpServletReponse in the `/sign-in` api. 
+   - Add `HttpServletReponse` in the `/sign-in` api. 
    ```java
    @RestController
    @RequiredArgsConstructor
@@ -934,7 +933,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
    
-   - Modify the method to create a cookie. 
+   - Modify the method to `create a cookie`. 
    ```java
    @Service
    @RequiredArgsConstructor
@@ -1037,106 +1036,106 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
    ```
 5. Now let's create a `Filter` for `refresh-token api`
-
-   - Filter 
-   ```java
-   @RequiredArgsConstructor
-   @Slf4j
-   public class JwtRefreshTokenAuthenticationFilter extends OncePerRequestFilter {
-   
-   
-      private  final RSAKeyRecord rsaKeyRecord;
-      private final JwtTokenUtils jwtTokenUtils;
-      private final RefreshTokenRepo refreshTokenRepo;
-      @Override
-      protected void doFilterInternal(HttpServletRequest request,
-                                      HttpServletResponse response,
-                                      FilterChain filterChain) throws ServletException, IOException {
-   
-         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-         JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
-   
-         if(!authHeader.startsWith("Bearer ")){
-            filterChain.doFilter(request,response);
-            return;
+   - Now add that filter to `SecurityConfig`:
+     ```java
+     @Configuration
+     @EnableWebSecurity
+     @EnableMethodSecurity
+     @RequiredArgsConstructor
+     @Slf4j
+     public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+  
+         private final UserInfoManagerConfig userInfoManagerConfig;
+         private final RSAKeyRecord rsaKeyRecord;
+         private final JwtTokenUtils jwtTokenUtils;
+         private final RefreshTokenRepo refreshTokenRepo;
+  
+        // ..
+         @Order(2)
+         @Bean
+         public SecurityFilterChain refreshTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
+             return httpSecurity
+                     .securityMatcher(new AntPathRequestMatcher("/refresh-token/**"))
+                     .csrf(csrf->csrf.disable())
+                     .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                     .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                     .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, jwtTokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
+                     .exceptionHandling(ex -> {
+                         ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                         ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                     })
+                     .build();
          }
+         // ..
+     }
+
+     ```
+      - Filter 
+      ```java
+      @RequiredArgsConstructor
+      @Slf4j
+      public class JwtRefreshTokenAuthenticationFilter extends OncePerRequestFilter {
    
-         final String token = authHeader.substring(7);
-         final Jwt jwtRefreshToken = jwtDecoder.decode(token);
    
+         private  final RSAKeyRecord rsaKeyRecord;
+         private final JwtTokenUtils jwtTokenUtils;
+         private final RefreshTokenRepo refreshTokenRepo;
+         @Override
+         protected void doFilterInternal(HttpServletRequest request,
+                                         HttpServletResponse response,
+                                         FilterChain filterChain) throws ServletException, IOException {
    
-         final String userName = jwtTokenUtils.getUserName(jwtRefreshToken);
+            final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+            JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
    
-   
-         if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
-            //Check if refreshToken isPresent in database and is valid
-            var isRefreshTokenValidInDatabase = refreshTokenRepo.findByRefreshToken(jwtRefreshToken.getTokenValue())
-                    .map(refreshTokenEntity -> !refreshTokenEntity.isRevoked())
-                    .orElse(false);
-   
-            UserDetails userDetails = jwtTokenUtils.userDetails(userName);
-            if(jwtTokenUtils.isTokenValid(jwtRefreshToken,userDetails) && isRefreshTokenValidInDatabase){
-               SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-   
-               UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
-                       userDetails,
-                       null,
-                       userDetails.getAuthorities()
-               );
-   
-               createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-               securityContext.setAuthentication(createdToken);
-               SecurityContextHolder.setContext(securityContext);
+            if(!authHeader.startsWith("Bearer ")){
+               filterChain.doFilter(request,response);
+               return;
             }
+   
+            final String token = authHeader.substring(7);
+            final Jwt jwtRefreshToken = jwtDecoder.decode(token);
+   
+   
+            final String userName = jwtTokenUtils.getUserName(jwtRefreshToken);
+   
+   
+            if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
+               //Check if refreshToken isPresent in database and is valid
+               var isRefreshTokenValidInDatabase = refreshTokenRepo.findByRefreshToken(jwtRefreshToken.getTokenValue())
+                       .map(refreshTokenEntity -> !refreshTokenEntity.isRevoked())
+                       .orElse(false);
+   
+               UserDetails userDetails = jwtTokenUtils.userDetails(userName);
+               if(jwtTokenUtils.isTokenValid(jwtRefreshToken,userDetails) && isRefreshTokenValidInDatabase){
+                  SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+   
+                  UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
+                          userDetails,
+                          null,
+                          userDetails.getAuthorities()
+                  );
+   
+                  createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                  securityContext.setAuthentication(createdToken);
+                  SecurityContextHolder.setContext(securityContext);
+               }
+            }
+   
+            filterChain.doFilter(request,response);
          }
-   
-         filterChain.doFilter(request,response);
       }
-   }
    
-   ```
-   - Now add that filter to `SecurityConfig`: 
-   ```java
-   @Configuration
-   @EnableWebSecurity
-   @EnableMethodSecurity
-   @RequiredArgsConstructor
-   @Slf4j
-   public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-   
-       private final UserInfoManagerConfig userInfoManagerConfig;
-       private final RSAKeyRecord rsaKeyRecord;
-       private final JwtTokenUtils jwtTokenUtils;
-       private final RefreshTokenRepo refreshTokenRepo;
-   
-      // ..
-       @Order(2)
-       @Bean
-       public SecurityFilterChain refreshTokenFilterChain(HttpSecurity httpSecurity) throws Exception{
-           return httpSecurity
-                   .securityMatcher(new AntPathRequestMatcher("/refresh-token/**"))
-                   .csrf(csrf->csrf.disable())
-                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                   .addFilterBefore(new JwtRefreshTokenAuthenticationFilter(rsaKeyRecord, jwtTokenUtils,refreshTokenRepo), UsernamePasswordAuthenticationFilter.class)
-                   .exceptionHandling(ex -> {
-                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                   })
-                   .build();
-       }
-       // ..
-   }
-
-   ```
+      ```
+  
 6. Test the api : 
    - Sign-in using admin : http://localhost:8080/sign-in
    - Copy the `refresh-token` from `cookie`
    - Use the `refresh-token` to get new `access-token`: http://localhost:8080/refresh-token
    - Access any of the `admin-api` using it : http://localhost:8080/api/admin-message
 
-### `Sign-out` and `Revoke` the token
+## Part 5: `Sign-out` and `Revoke` the token
 
 1. Modify the `SecurityConfig` to add `logout` url
 
@@ -1218,7 +1217,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
       }
    
    ```
-### `Sign-Up` to getAccess and RefreshToken
+## Part 6:  `Sign-Up` to getAccess and RefreshToken
 
 1. Let's create a `UserRegistrationDto` 
 
