@@ -487,7 +487,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
           }
       }
    ```
-   Let's add JwtTokenGenerator in jwtAuth
+   Let's add `JwtTokenGenerator` in jwtAuth
 
    ```java
    import java.time.temporal.ChronoUnit;    
@@ -563,7 +563,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
    
-   Let's add token encoder and decoder
+   Let's add `token encoder` and `decoder`
    ```java
    @Configuration
    @EnableWebSecurity
@@ -625,8 +625,27 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        }
    }
    ```   
-
-6. Test the API for Authentication and Authorization: 
+6. Now add `/api` config again in securityConfig, which will use `ouath2` for jwt access token
+   ```java
+       @Order(3)
+       @Bean
+       public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+           return httpSecurity
+                   .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                   .csrf(csrf->csrf.disable())
+                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                   .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord,jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
+                   .exceptionHandling(ex -> {
+                       log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
+                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                   })
+                   .build();
+       }
+   ```
+7. Test the API for Authentication and Authorization: 
    - Authentication using `sign-in` api: `http://localhost:8080/sign-in`  with `username` and `password` will return json output
    ```json
    {
@@ -642,7 +661,43 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
 ## Part 4: Adding JwtFilter - UseCase: User is removed, then also jwtAccessToken will work, so prevent it. 
 
-1. Create a `OncePerRequestFilter` which will scrutinize the jwt token. 
+1. Add filter for `/api` access
+
+   ```java
+      @Configuration
+      @EnableWebSecurity
+      @EnableMethodSecurity
+      @RequiredArgsConstructor
+      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
+      
+          //.....
+          private final RSAKeyRecord rsaKeyRecord;
+          private final JwtTokenUtils jwtTokenUtils;
+      
+          // .....
+          @Order(2)
+          @Bean
+          public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
+              return httpSecurity
+                      .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                      .csrf(csrf -> csrf.disable())
+                      .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                      .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                      .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord, jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
+                      .exceptionHandling(ex -> {
+                          log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
+                          ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                          ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                      })
+                      .build();
+             // ..
+          }
+      }
+   
+   ```
+
+2. Create a `OncePerRequestFilter` which will scrutinize the jwt token. 
    
    - Access Filter
    ```java
@@ -734,39 +789,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
    ```
 2. Now add the filter to the securityConfig for the `/api` inside securityConfig
-   ```java
-      @Configuration
-      @EnableWebSecurity
-      @EnableMethodSecurity
-      @RequiredArgsConstructor
-      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-      
-          //.....
-          private final RSAKeyRecord rsaKeyRecord;
-          private final JwtTokenUtils jwtTokenUtils;
-      
-          // .....
-          @Order(2)
-          @Bean
-          public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
-              return httpSecurity
-                      .securityMatcher(new AntPathRequestMatcher("/api/**"))
-                      .csrf(csrf -> csrf.disable())
-                      .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                      .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                      .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord, jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
-                      .exceptionHandling(ex -> {
-                          log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
-                          ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                          ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                      })
-                      .build();
-             // ..
-          }
-      }
    
-   ```
 3. Testing:
    - [Success] Test with the same API  
    - [Failure] After creating the token , delete the user or Wait for expiry. 
