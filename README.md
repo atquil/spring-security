@@ -79,18 +79,18 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
         @Column(name = "USER_NAME")
         private String userName;
     
-    
         @Column(nullable = false, name = "EMAIL_ID", unique = true)
         private String emailId;
     
+        @Column(nullable = false, name = "PASSWORD")
+        private String password;
+        
         @Column(name = "MOBILE_NUMBER")
         private String mobileNumber;
     
         @Column(nullable = false, name = "ROLES")
         private String roles;
-    
-        @Column(nullable = false, name = "PASSWORD")
-        private String password;
+
     }
     
     ```
@@ -99,7 +99,6 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
     ```java
     @Repository
     public interface UserInfoRepo extends JpaRepository<UserInfoEntity,Long> {
-        Optional<UserInfoEntity> findByEmailId(String emailId);
     }
     ```
 
@@ -168,6 +167,14 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
+   
+    - Add the missing method findByEmailId in `userInfoRepo`
+    ```java
+    @Repository
+    public interface UserInfoRepo extends JpaRepository<UserInfoEntity,Long> {
+        Optional<UserInfoEntity> findByEmailId(String emailId);
+    }
+    ```
 5. Let's modify our Security Setting, to let it access the API using our User. Create a `SecurityConfig` file in config package. 
 
    ```java
