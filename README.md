@@ -291,7 +291,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    - http://localhost:8080/h2-console/ , to see if data exist in the database
    - http://localhost:8080/api/welcome-message : Accessed by all
    - http://localhost:8080/api/manager-message : Manager and Admin
-   - http://localhost:8080/api/admin-message: Only Admin
+   - http://localhost:8080/api/admin-message: Only Admin **Params**
 
 
 ## Part 3: Return _Jwt Access Token_ while authenticating, and add `Roles` and `Permissions`
