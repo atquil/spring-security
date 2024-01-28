@@ -293,7 +293,6 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    - http://localhost:8080/api/manager-message : Manager and Admin
    - http://localhost:8080/api/admin-message: Only Admin **Params**
 
-
 ## Part 3: Return _Jwt Access Token_ while authenticating, and add `Roles` and `Permissions`
 
 1. **Generating Asymmetric Keys with OpenSSL** :
@@ -1182,7 +1181,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
     
     ```
   
-6. Test the api : 
+7. Test the api : 
    - Sign-in using admin : http://localhost:8080/sign-in
    - Copy the `refresh-token` from `cookie`
    - Use the `refresh-token` to get new `access-token`: http://localhost:8080/refresh-token
