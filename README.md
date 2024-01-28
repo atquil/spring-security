@@ -1416,3 +1416,5 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
     "userRole": "ROLE_MANAGER"
 }
 ```
+
+## Thanks for sticking with me, i have added Postman collection with it, please use it. 
