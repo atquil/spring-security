@@ -483,7 +483,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
    ```
 
-   - Now add `JwtTokenGenerator` in jwtAuth
+   - Now add `JwtTokenGenerator` in **jwtAuth** package
 
    ```java
    import java.time.temporal.ChronoUnit;    
