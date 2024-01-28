@@ -28,7 +28,7 @@ public class DashboardController {
     @PreAuthorize("hasAuthority('SCOPE_READ')")
     @GetMapping("/manager-message")
     public ResponseEntity<String> getManagerData(Principal principal){
-        return ResponseEntity.ok("Admin::"+principal.getName());
+        return ResponseEntity.ok("Manager::"+principal.getName());
     }
 
     //@PreAuthorize("hasRole('ROLE_ADMIN')")

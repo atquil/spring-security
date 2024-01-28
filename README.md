@@ -273,7 +273,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
         @PreAuthorize("hasRole('ROLE_MANAGER')")
         @GetMapping("/manager-message")
         public ResponseEntity<String> getManagerData(Principal principal){
-            return ResponseEntity.ok("Admin::"+principal.getName());
+            return ResponseEntity.ok("Manager::"+principal.getName());
     
         }
     
@@ -587,7 +587,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
         @PreAuthorize("hasAuthority('SCOPE_READ')")
         @GetMapping("/manager-message")
         public ResponseEntity<String> getManagerData(Principal principal){
-             return ResponseEntity.ok("Admin::"+principal.getName());
+             return ResponseEntity.ok("Manager::"+principal.getName());
         }
     
         //@PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -1189,7 +1189,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
 ## Part 6: `Sign-out` and `Revoke` the token
 
-1. Modify the `SecurityConfig` to add `logout` url
+1. Spring Security provide inbuilt api `/logout` to manage **revoking**. 
 
    ```java
    @Configuration
@@ -1201,12 +1201,13 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
        //..
        private final LogoutHandlerService logoutHandlerService;
+        //...
        @Order(4)
        @Bean
        public SecurityFilterChain logoutSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
            return httpSecurity
                    .securityMatcher(new AntPathRequestMatcher("/logout/**"))
-                   .csrf(csrf->csrf.disable())
+                   .csrf(AbstractHttpConfigurer::disable)
                    .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
                    .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -1237,12 +1238,15 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
        @Override
        public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+           
            final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-           if(!authHeader.startsWith("Bearer ")){
+           
+           if(!authHeader.startsWith(TokenType.Bearer.name())){
                return;
            }
    
            final String refreshToken = authHeader.substring(7);
+           
            var storedRefreshToken = refreshTokenRepo.findByRefreshToken(refreshToken)
                    .map(token->{
                        token.setRevoked(true);
@@ -1252,16 +1256,16 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                    .orElse(null);
        }
    }
+
    ```
 
 3. Now test the api using `refreshToken` : http://localhost:8080/logout
+
 4. **Note: If you want to revoke from all the places, you can get the userName**
    ```java
       @Repository
       public interface RefreshTokenRepo extends JpaRepository<RefreshTokenEntity, Long> {
-      
-         Optional<RefreshTokenEntity> findByRefreshToken(String refreshToken);
-      
+
          @Query(value = "SELECT rt.* FROM REFRESH_TOKENS rt " +
                  "INNER JOIN USER_DETAILS ud ON rt.user_id = ud.id " +
                  "WHERE ud.EMAIL = :userEmail and rt.revoked = false ", nativeQuery = true)
@@ -1274,8 +1278,8 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 1. Let's create a `UserRegistrationDto` 
 
    ```java
-   public record UserRegistrationDto (
-           @NotEmpty(message = "User role must not be empty")
+      public record UserRegistrationDto (
+           @NotEmpty(message = "User Name must not be empty")
            String userName,
            String userMobileNo,
            @NotEmpty(message = "User email must not be empty") //Neither null nor 0 size
@@ -1285,12 +1289,11 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
            @NotEmpty(message = "User password must not be empty")
            String userPassword,
            @NotEmpty(message = "User role must not be empty")
-           String userRole){
-   
-   
-   }
+           String userRole
+   ){ }
    ```
-2. Create a endpoint in `AuthController` to accept it and create a respective services 
+2. Create a endpoint in `AuthController`
+   
    ```java
    @RestController
    @RequiredArgsConstructor
@@ -1318,7 +1321,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
-3. Add respective service : 
+3. Add respective service : **AccessToken** , **RefreshToken** in HttpOnly Cookie 
 
    ```java
    @Service
@@ -1340,7 +1343,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
                }
    
                UserInfoEntity userDetailsEntity = userInfoMapper.convertToEntity(userRegistrationDto);
-               Authentication authentication = createAuthentication(userDetailsEntity);
+               Authentication authentication = createAuthenticationObject(userDetailsEntity);
    
    
                // Generate a JWT token
@@ -1396,7 +1399,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        public SecurityFilterChain registerSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
            return httpSecurity
                    .securityMatcher(new AntPathRequestMatcher("/sign-up/**"))
-                   .csrf(csrf->csrf.disable())
+                   .csrf(AbstractHttpConfigurer::disable)
                    .authorizeHttpRequests(auth ->
                            auth.anyRequest().permitAll())
                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
