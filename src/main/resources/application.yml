@@ -6,17 +6,18 @@ spring:
     url: jdbc:h2:mem:atquilDB
     username: sa
     password:
-    driverClassName: org.h2.Driver
+    driver-class-name: org.h2.Driver
+
   jpa:
-    spring.jpa.database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
     hibernate:
       ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
 logging:
   level:
     org.springframework.security: trace
 
+
 jwt:
   rsa-private-key: classpath:certs/privateKey.pem
   rsa-public-key: classpath:certs/publicKey.pem
-

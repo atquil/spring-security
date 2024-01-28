@@ -1,6 +1,5 @@
 package com.atquil.springSecurity.dto;
 
-import com.atquil.springSecurity.enums.TokenType;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,4 +1,4 @@
-package com.atquil.springSecurity.enums;
+package com.atquil.springSecurity.dto;
 
 /**
  * @author atquil

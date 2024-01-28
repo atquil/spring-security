@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.config.jwtAuth;
 
-import com.atquil.springSecurity.config.userConfig.UserInfoConfig;
-import com.atquil.springSecurity.repo.UserInfoRepo;
+import com.atquil.jwtoauth2.config.user.UserInfoConfig;
+import com.atquil.jwtoauth2.repo.UserInfoRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,7 +14,6 @@ import java.util.Objects;
 /**
  * @author atquil
  */
-
 @Component
 @RequiredArgsConstructor
 public class JwtTokenUtils {
@@ -43,3 +42,4 @@ public class JwtTokenUtils {
                 .orElseThrow(()-> new UsernameNotFoundException("UserEmail: "+emailId+" does not exist"));
     }
 }
+

@@ -1,6 +1,6 @@
-package com.atquil.springSecurity.config.userConfig;
+package com.atquil.springSecurity.config.user;
 
-import com.atquil.springSecurity.entity.UserInfoEntity;
+import com.atquil.jwtoauth2.entity.UserInfoEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

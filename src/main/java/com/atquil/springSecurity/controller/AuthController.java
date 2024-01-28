@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.controller;
 
-import com.atquil.springSecurity.dto.UserRegistrationDto;
-import com.atquil.springSecurity.service.AuthService;
+import com.atquil.jwtoauth2.dto.UserRegistrationDto;
+import com.atquil.jwtoauth2.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,6 @@ import java.util.List;
 /**
  * @author atquil
  */
-
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -31,7 +30,7 @@ public class AuthController {
 
     private final AuthService authService;
     @PostMapping("/sign-in")
-    public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
+    public ResponseEntity<?> authenticateUser(Authentication authentication,HttpServletResponse response){
 
         return ResponseEntity.ok(authService.getJwtTokensAfterAuthentication(authentication,response));
     }
@@ -56,5 +55,4 @@ public class AuthController {
         }
         return ResponseEntity.ok(authService.registerUser(userRegistrationDto,httpServletResponse));
     }
-
 }

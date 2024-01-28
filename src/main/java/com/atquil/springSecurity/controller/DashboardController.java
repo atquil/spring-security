@@ -1,7 +1,5 @@
 package com.atquil.springSecurity.controller;
 
-import com.atquil.springSecurity.service.AdminService;
-import jakarta.annotation.security.RolesAllowed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,18 +15,20 @@ import java.security.Principal;
 @RequestMapping("/api")
 @RequiredArgsConstructor
 public class DashboardController {
-    private final AdminService adminService;
+
+    //@PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN','ROLE_USER')")
+    @PreAuthorize("hasAuthority('SCOPE_READ')")
     @GetMapping("/welcome-message")
     public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
         return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
-
     }
 
-    //@PreAuthorize("hasRole('ROLE_MANAGER')")
+   //@PreAuthorize("hasRole('ROLE_MANAGER')")
     @PreAuthorize("hasAuthority('SCOPE_READ')")
     @GetMapping("/manager-message")
     public ResponseEntity<String> getManagerData(Principal principal){
-        return ResponseEntity.ok("Manager::"+principal.getName());
+        return ResponseEntity.ok("Admin::"+principal.getName());
+
     }
 
     //@PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -39,11 +39,4 @@ public class DashboardController {
 
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_WRITE')")
-    @GetMapping("/revoke-access")
-    public ResponseEntity<String> revokeAccessForUser(@RequestParam("userEmail") String userEmail){
-        return ResponseEntity.ok(adminService.revokeRefreshTokensForUser(userEmail));
-
-    }
 }
-

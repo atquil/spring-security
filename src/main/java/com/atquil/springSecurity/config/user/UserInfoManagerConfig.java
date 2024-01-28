@@ -1,6 +1,6 @@
-package com.atquil.springSecurity.config.userConfig;
+package com.atquil.springSecurity.config.user;
 
-import com.atquil.springSecurity.repo.UserInfoRepo;
+import com.atquil.jwtoauth2.repo.UserInfoRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 /**
  * @author atquil
  */
-
 @Service
 @RequiredArgsConstructor
 public class UserInfoManagerConfig implements UserDetailsService {

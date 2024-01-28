@@ -8,7 +8,6 @@ import java.security.interfaces.RSAPublicKey;
 /**
  * @author atquil
  */
-
 @ConfigurationProperties(prefix = "jwt")
 public record RSAKeyRecord (RSAPublicKey rsaPublicKey, RSAPrivateKey rsaPrivateKey){
 

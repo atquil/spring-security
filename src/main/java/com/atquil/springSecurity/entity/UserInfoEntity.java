@@ -10,7 +10,6 @@ import java.util.List;
 /**
  * @author atquil
  */
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,11 +23,9 @@ public class UserInfoEntity {
     @Column(name = "USER_NAME")
     private String userName;
 
+
     @Column(nullable = false, name = "EMAIL_ID", unique = true)
     private String emailId;
-
-    @Column(nullable = false, name = "PASSWORD")
-    private String password;
 
     @Column(name = "MOBILE_NUMBER")
     private String mobileNumber;
@@ -36,9 +33,10 @@ public class UserInfoEntity {
     @Column(nullable = false, name = "ROLES")
     private String roles;
 
+    @Column(nullable = false, name = "PASSWORD")
+    private String password;
 
-
-    // Many-to-One relationship with RefreshTokenEntity
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RefreshTokenEntity> refreshTokens;
 }
+
