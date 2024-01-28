@@ -362,52 +362,40 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
           rsa-private-key: classpath:certs/privateKey.pem
           rsa-public-key: classpath:certs/publicKey.pem
      ```
-2. Let's modify `/api` to `sign-in` api, and return **accessToken**
+2. Let's now create a `filterChain` similar to  `/api`  as  `sign-in` api, which will return **accessToken**, and also modify the `Order`
+    - **STATELESS** : A stateless architecture is one in which the server does not store any session data for a client. Instead, each request from the client contains all the information necessary to complete the request
    ```java
-      @Configuration
-      @EnableWebSecurity
-      @EnableMethodSecurity
-      @RequiredArgsConstructor
-      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-      
-          private final UserInfoManagerConfig userInfoManagerConfig;
-          private final RSAKeyRecord rsaKeyRecord;
-      
-          @Order(1)
-          @Bean
-          public SecurityFilterChain signInSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
-              return httpSecurity
-                      .securityMatcher(new AntPathRequestMatcher("/sign-in/**"))
-                      .csrf(csrf->csrf.disable())
-                      .authorizeHttpRequests(auth ->
-                              auth.anyRequest().authenticated())
-                      .userDetailsService(userInfoManagerConfig)
-                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                      .exceptionHandling(ex -> {
-                          ex.authenticationEntryPoint((request, response, authException) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()));
-                      })
-                      .httpBasic(withDefaults())
-                      .build();
-          }
-          
-          @Order(2)
-          @Bean
-          public SecurityFilterChain h2ConsoleSecurityFilterChainConfig(HttpSecurity httpSecurity) throws Exception{
-              return httpSecurity
-                      .securityMatcher(new AntPathRequestMatcher(("/h2-console/**")))
-                      .authorizeHttpRequests(auth->auth.anyRequest().permitAll())
-                      .csrf(csrf -> csrf.ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")))
-                      .headers(headers -> headers.frameOptions(withDefaults()).disable())
-                      .build();
-          }
-          @Bean
-          PasswordEncoder passwordEncoder() {
-              return new BCryptPasswordEncoder();
-          }
-          
-      }
-   
-      
+    @Configuration
+    @EnableWebSecurity
+    @EnableMethodSecurity
+    @RequiredArgsConstructor
+    public class SecurityConfig {
+    
+        private final UserInfoManagerConfig userInfoManagerConfig;
+        
+        @Order(1)
+        @Bean
+        public SecurityFilterChain signInSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+            return httpSecurity
+                    .securityMatcher(new AntPathRequestMatcher("/sign-in/**"))
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                    .userDetailsService(userInfoManagerConfig)
+                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .exceptionHandling(ex -> {
+                        ex.authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage()));
+                    })
+                    .httpBasic(withDefaults())
+                    .build();
+        }
+    
+    
+       //.....
+    
+    }
+
+
       ```
 
 3. Let's create a `AuthController` , to receive the `api` 
