@@ -867,7 +867,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
 
-4. **Modiy** `getJwtTokensAfterAuthentication` so that when user `sign-in`, he will receive the **refresh-token** as well, so that when **access token** expires , it get's a new access token using refresh token. 
+4. **Modify** `getJwtTokensAfterAuthentication` so that when user `sign-in`, he will receive the **refresh-token** as well, so that when **access token** expires , it get's a new access token using refresh token. 
 
    ```java
    @Service
@@ -959,78 +959,90 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
-4. Now let's create the API which will use the `refresh-token` to get new `access-token`
+4. Add the `/refresh-token` api , so that we can get **new accessToken**
 
    - Create the Api
    ```java
    @RestController
-   @RequiredArgsConstructor
-   @Slf4j
-   public class AuthController {
-   
-      private final UserInfoService userInfoService;
-   
-       //...
-      @PreAuthorize("hasAuthority('SCOPE_REFRESH_TOKEN')")
-      @PostMapping ("/refresh-token")
-      public ResponseEntity<?> getAccessToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader){
-         return ResponseEntity.ok(authService.getAccessTokenUsingRefreshToken(authorizationHeader));
-      }
-      
-   
-   }
+    @RequiredArgsConstructor
+    @Slf4j
+    public class AuthController {
+    
+        //...
+        @PreAuthorize("hasAuthority('SCOPE_REFRESH_TOKEN')")
+        @PostMapping ("/refresh-token")
+        public ResponseEntity<?> getAccessToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader){
+            return ResponseEntity.ok(authService.getAccessTokenUsingRefreshToken(authorizationHeader));
+        }
+    }
+
    ```
-   - Now Add the method
+5. Now write the businessLogic 
    ```java
    @Service
-   @RequiredArgsConstructor
-   @Slf4j
-   public class AuthService {
-   
-    //..
-   
-       public Object getAccessTokenUsingRefreshToken(String authorizationHeader) {
-   
-           if(!authorizationHeader.startsWith(TokenType.Bearer.name())){
-               return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please verify your token");
-           }
-   
-           final String refreshToken = authorizationHeader.substring(7);
-   
-           var refreshTokenEntity = refreshTokenRepo.findByRefreshToken(refreshToken)
-                   .filter(tokens-> !tokens.isRevoked())
-                   .orElseThrow(()-> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Refresh token revoked"));
-   
-           UserInfoEntity userInfoEntity = refreshTokenEntity.getUser();
-           Authentication authentication =  createAuthentication(userInfoEntity);
-           
-           String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
-   
-           return  AuthResponseDto.builder()
-                   .accessToken(accessToken)
-                   .accessTokenExpiry(5 * 60)
-                   .userName(userInfoEntity.getUserName())
-                   .tokenType(TokenType.Bearer)
-                   .build();
-       }
-   
-       private static Authentication createAuthentication(UserInfoEntity userInfoEntity) {
-           // Extract user details from UserDetailsEntity
-           String username = userInfoEntity.getEmailId();
-           String password = userInfoEntity.getPassword();
-           String roles = userInfoEntity.getRoles();
-   
-           // Extract authorities from roles (comma-separated)
-           String[] roleArray = roles.split(",");
-           GrantedAuthority[] authorities = Arrays.stream(roleArray)
-                   .map(role -> (GrantedAuthority) role::trim)
-                   .toArray(GrantedAuthority[]::new);
-           
-           return new UsernamePasswordAuthenticationToken(username, password, Arrays.asList(authorities));
-       }
-   }
-   
+    @RequiredArgsConstructor
+    @Slf4j
+    public class AuthService {
+    
+        //...
+    
+        public Object getAccessTokenUsingRefreshToken(String authorizationHeader) {
+    
+            if(!authorizationHeader.startsWith(TokenType.Bearer.name())){
+                return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please verify your token type");
+            }
+    
+            final String refreshToken = authorizationHeader.substring(7);
+    
+            //Find refreshToken from database
+            var refreshTokenEntity = refreshTokenRepo.findByRefreshToken(refreshToken)
+                    .filter(tokens-> !tokens.isRevoked())
+                    .orElseThrow(()-> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Refresh token revoked"));
+    
+            UserInfoEntity userInfoEntity = refreshTokenEntity.getUser();
+            
+            //Now create the Authentication object
+            Authentication authentication =  createAuthenticationObject(userInfoEntity);
+    
+            //Use the authentication object to generate new accessToken as the Authentication object that we will have may not contain correct role. 
+            String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+    
+            return  AuthResponseDto.builder()
+                    .accessToken(accessToken)
+                    .accessTokenExpiry(5 * 60)
+                    .userName(userInfoEntity.getUserName())
+                    .tokenType(TokenType.Bearer)
+                    .build();
+        }
+    
+        private static Authentication createAuthenticationObject(UserInfoEntity userInfoEntity) {
+            // Extract user details from UserDetailsEntity
+            String username = userInfoEntity.getEmailId();
+            String password = userInfoEntity.getPassword();
+            String roles = userInfoEntity.getRoles();
+    
+            // Extract authorities from roles (comma-separated)
+            String[] roleArray = roles.split(",");
+            GrantedAuthority[] authorities = Arrays.stream(roleArray)
+                    .map(role -> (GrantedAuthority) role::trim)
+                    .toArray(GrantedAuthority[]::new);
+    
+            return new UsernamePasswordAuthenticationToken(username, password, Arrays.asList(authorities));
+        }
+    }
    ```
+   
+    - Also add the helper method in the repo
+    ```java
+    @Repository
+    public interface RefreshTokenRepo extends JpaRepository<RefreshTokenEntity, Long> {
+    
+        Optional<RefreshTokenEntity> findByRefreshToken(String refreshToken);
+        
+    }
+    
+    ```
+
 5. Now let's create a `Filter` for `refresh-token api`
    - Now add that filter to `SecurityConfig`:
      ```java
