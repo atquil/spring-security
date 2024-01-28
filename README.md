@@ -215,7 +215,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
    ```
    
-6. Let's add few users to the database using `CommandlineRunner`
+6. Let's create a package called `userConfig` and add few users to the database using `CommandlineRunner`
    ```java
    @RequiredArgsConstructor
    @Component
