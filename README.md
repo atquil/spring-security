@@ -775,7 +775,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
 4. Testing:
    - [Success] Test with the same API  
-   - [Failure] After creating the token , delete the user or Wait for expiry. 
+   - [Failure] After creating the token , **delete the user or Wait for expiry**. 
 
 ## Part 5 : `Refresh token ` using `HttpOnly` Cookie and store it in database
 
