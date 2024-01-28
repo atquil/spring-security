@@ -398,7 +398,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
       ```
 
-3. Let's create a `AuthController` , to receive the `sign-in` api 
+3. Create a `AuthController` , to receive the `sign-in` api 
 
    ```java
    @RestController
@@ -414,8 +414,9 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        }
    }
    ```
-4. Let's create return type of AuthResponseDto required `AuthSerivce` to return **accessToken**
+4. Now add the business logic to return the accessToken
 
+    - What we want to return ? **`AuthResponseDto`**
    ```java
    @Data
    @Builder
@@ -443,45 +444,46 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        Bearer
    }
    ```
-   -Token Generator
+   
+    - **AuthService** to return the AuthResponseDto:
    ```java
-   @Service
-      @RequiredArgsConstructor
-      @Slf4j
-      public class AuthService {
-      
-          private final UserInfoRepo userInfoRepo;
-          private final JwtTokenGenerator jwtTokenGenerator;
-          public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication) {
-              try
-              {
-                  //Return 500, as error to avoid guessing by malicious actors. 
-      
-                  var userInfoEntity = userInfoRepo.findByEmailId(authentication.getName())
-                          .orElseThrow(()->{
-                              log.error("[AuthService:userSignInAuth] User :{} not found",authentication.getName());
-                              return new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again ");});
-      
-      
-                  String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
-      
-                  log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
-                  return  AuthResponseDto.builder()
-                          .accessToken(accessToken)
-                          .accessTokenExpiry(15 * 60)
-                          .userName(userInfoEntity.getUserName())
-                          .tokenType(TokenType.Bearer)
-                          .build();
-      
-      
-              }catch (Exception e){
-                  log.error("[AuthService:userSignInAuth]Exception while authenticating the user due to :"+e.getMessage());
-                  throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again");
-              }
-          }
-      }
+    @Service
+    @RequiredArgsConstructor
+    @Slf4j
+    public class AuthService {
+    
+        private final UserInfoRepo userInfoRepo;
+        private final JwtTokenGenerator jwtTokenGenerator;
+        public AuthResponseDto getJwtTokensAfterAuthentication(Authentication authentication) {
+            try
+            {
+                var userInfoEntity = userInfoRepo.findByEmailId(authentication.getName())
+                        .orElseThrow(()->{
+                            log.error("[AuthService:userSignInAuth] User :{} not found",authentication.getName());
+                            return new ResponseStatusException(HttpStatus.NOT_FOUND,"USER NOT FOUND ");});
+    
+    
+                String accessToken = jwtTokenGenerator.generateAccessToken(authentication);
+    
+                log.info("[AuthService:userSignInAuth] Access token for user:{}, has been generated",userInfoEntity.getUserName());
+                return  AuthResponseDto.builder()
+                        .accessToken(accessToken)
+                        .accessTokenExpiry(15 * 60)
+                        .userName(userInfoEntity.getUserName())
+                        .tokenType(TokenType.Bearer)
+                        .build();
+    
+    
+            }catch (Exception e){
+                log.error("[AuthService:userSignInAuth]Exception while authenticating the user due to :"+e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"Please Try Again");
+            }
+        }
+    }
+
    ```
-   Let's add `JwtTokenGenerator` in jwtAuth
+
+   - Now add `JwtTokenGenerator` in jwtAuth
 
    ```java
    import java.time.temporal.ChronoUnit;    
