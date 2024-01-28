@@ -636,136 +636,143 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
      - `http://localhost:8080/api/welcome-message` 
      - `http://localhost:8080/api/admin-message` 
 
-## Part 4: Adding JwtFilter - UseCase: User is removed, then also jwtAccessToken will work, so prevent it. 
-
-1. Add filter for `/api` access
+## Part 4: Adding Custom JwtFilter to `validate` JWTs that are included in the Authorization header of HTTP Request. 
+    UseCase: User is removed, then also jwtAccessToken will work, so prevent it. 
+1. Let's create the Filter 
+    - **OncePerRequestFilter**: The filter is implemented as a subclass of OncePerRequestFilter, which ensures that the filter is only applied once per request.
+    - The filter uses the **rsaKeyRecord** object to **obtain the RSA public and private keys used to sign and verify the JWTs**.
+    - JWT 
+      - Valid: The filter creates an Authentication object and sets it in the SecurityContextHolder. The Authentication object contains the **user details** and **authorities extracted from the JWT**.
+      - In-valid: If the JWT is not valid, the filter throws a ResponseStatusException with an HTTP 406 Not Acceptable status code
+    ```java
+    @RequiredArgsConstructor
+    @Slf4j
+    public class JwtAccessTokenFilter extends OncePerRequestFilter {
+    
+        private final RSAKeyRecord rsaKeyRecord;
+        private final JwtTokenUtils jwtTokenUtils;
+        @Override
+        protected void doFilterInternal(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        FilterChain filterChain) throws ServletException, IOException {
+    
+            try{
+                log.info("[JwtAccessTokenFilter:doFilterInternal] :: Started ");
+    
+                log.info("[JwtAccessTokenFilter:doFilterInternal]Filtering the Http Request:{}",request.getRequestURI());
+                
+                final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+                
+                JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
+    
+                if(!authHeader.startsWith(TokenType.Bearer.name())){
+                    filterChain.doFilter(request,response);
+                    return;
+                }
+    
+                final String token = authHeader.substring(7);
+                final Jwt jwtToken = jwtDecoder.decode(token);
+    
+    
+                final String userName = jwtTokenUtils.getUserName(jwtToken);
+    
+                if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
+                    
+                    UserDetails userDetails = jwtTokenUtils.userDetails(userName);
+                    if(jwtTokenUtils.isTokenValid(jwtToken,userDetails)){
+                        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+    
+                        UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+                        createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        securityContext.setAuthentication(createdToken);
+                        SecurityContextHolder.setContext(securityContext);
+                    }
+                }
+                log.info("[JwtAccessTokenFilter:doFilterInternal] Completed");
+                
+                filterChain.doFilter(request,response);
+            }catch (JwtValidationException jwtValidationException){
+                log.error("[JwtAccessTokenFilter:doFilterInternal] Exception due to :{}",jwtValidationException.getMessage());
+                throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE,jwtValidationException.getMessage());
+            }
+        }
+    }
+    ```
+2. Token Utils
+    - Jwt from **Oauth**
+    ```java
+    @Component
+    @RequiredArgsConstructor
+    public class JwtTokenUtils {
+    
+        public String getUserName(Jwt jwtToken){
+            return jwtToken.getSubject();
+        }
+    
+        public boolean isTokenValid(Jwt jwtToken, UserDetails userDetails){
+            final String userName = getUserName(jwtToken);
+            boolean isTokenExpired = getIfTokenIsExpired(jwtToken);
+            boolean isTokenUserSameAsDatabase = userName.equals(userDetails.getUsername());
+            return !isTokenExpired  && isTokenUserSameAsDatabase;
+    
+        }
+    
+        private boolean getIfTokenIsExpired(Jwt jwtToken) {
+            return Objects.requireNonNull(jwtToken.getExpiresAt()).isBefore(Instant.now());
+        }
+    
+        private final UserInfoRepo useruserInfoRepo;
+        public UserDetails userDetails(String emailId){
+            return useruserInfoRepo
+                    .findByEmailId(emailId)
+                    .map(UserInfoConfig::new)
+                    .orElseThrow(()-> new UsernameNotFoundException("UserEmail: "+emailId+" does not exist"));
+        }
+    }
+    
+    ```
+3. Call the tokenFilter from the `SecurityConfig`
 
    ```java
-      @Configuration
-      @EnableWebSecurity
-      @EnableMethodSecurity
-      @RequiredArgsConstructor
-      public class SecurityConfig extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
-      
-          //.....
-          private final RSAKeyRecord rsaKeyRecord;
-          private final JwtTokenUtils jwtTokenUtils;
-      
-          // .....
-          @Order(2)
-          @Bean
-          public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception {
-              return httpSecurity
-                      .securityMatcher(new AntPathRequestMatcher("/api/**"))
-                      .csrf(csrf -> csrf.disable())
-                      .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                      .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                      .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord, jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
-                      .exceptionHandling(ex -> {
-                          log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
-                          ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                          ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                      })
-                      .build();
-             // ..
-          }
-      }
+    @Configuration
+    @EnableWebSecurity
+    @EnableMethodSecurity
+    @RequiredArgsConstructor
+    @Slf4j
+    public class SecurityConfig {
+    
+        //...
+        private final JwtTokenUtils jwtTokenUtils;
+        //...
+    
+        @Order(2)
+        @Bean
+        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+            return httpSecurity
+                    .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                    .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord, jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
+                    .exceptionHandling(ex -> {
+                        log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
+                        ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                        ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                    })
+                    .httpBasic(withDefaults())
+                    .build();
+        }
+    
+    
+    }
    
    ```
 
-2. Create a `OncePerRequestFilter` which will scrutinize the jwt token. 
-   
-   - Access Filter
-   ```java
-   @RequiredArgsConstructor
-   @Slf4j
-   public class JwtAccessTokenFilter extends OncePerRequestFilter {
-   
-       private final RSAKeyRecord rsaKeyRecord;
-       private final JwtTokenUtils jwtTokenUtils;
-       @Override
-       protected void doFilterInternal(HttpServletRequest request,
-                                       HttpServletResponse response,
-                                       FilterChain filterChain) throws ServletException, IOException {
-   
-           try{
-               log.info("[JwtAccessTokenFilter:doFilterInternal] :: Started ");
-   
-               log.info("[JwtAccessTokenFilter:doFilterInternal]Filtering the Http Request:{}",request.getRequestURI());
-               final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-               JwtDecoder jwtDecoder =  NimbusJwtDecoder.withPublicKey(rsaKeyRecord.rsaPublicKey()).build();
-   
-               if(!authHeader.startsWith(TokenType.Bearer.name())){
-                   filterChain.doFilter(request,response);
-                   return;
-               }
-   
-               final String token = authHeader.substring(7);
-               final Jwt jwtToken = jwtDecoder.decode(token);
-   
-   
-               final String userName = jwtTokenUtils.getUserName(jwtToken);
-   
-               if(!userName.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null){
-                   UserDetails userDetails = jwtTokenUtils.userDetails(userName);
-                   if(jwtTokenUtils.isTokenValid(jwtToken,userDetails)){
-                       SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-   
-                       UsernamePasswordAuthenticationToken createdToken = new UsernamePasswordAuthenticationToken(
-                               userDetails,
-                               null,
-                               userDetails.getAuthorities()
-                       );
-                       createdToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                       securityContext.setAuthentication(createdToken);
-                       SecurityContextHolder.setContext(securityContext);
-                   }
-               }
-               log.info("[JwtAccessTokenFilter:doFilterInternal] Completed");
-               filterChain.doFilter(request,response);
-           }catch (JwtValidationException jwtValidationException){
-               log.error("[JwtAccessTokenFilter:doFilterInternal] Exception due to :{}",jwtValidationException.getMessage());
-               throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE,jwtValidationException.getMessage());
-           }
-       }
-   }
-
-   ```
-
-3. Common jwt-token filter helper methods
-   ```java
-   @Component
-   @RequiredArgsConstructor
-   public class JwtTokenUtils {
-   
-       public String getUserName(Jwt jwtToken){
-           return jwtToken.getSubject();
-       }
-   
-       public boolean isTokenValid(Jwt jwtToken, UserDetails userDetails){
-           final String userName = getUserName(jwtToken);
-           boolean isTokenExpired = getIfTokenIsExpired(jwtToken);
-           boolean isTokenUserSameAsDatabase = userName.equals(userDetails.getUsername());
-           return !isTokenExpired  && isTokenUserSameAsDatabase;
-   
-       }
-   
-       private boolean getIfTokenIsExpired(Jwt jwtToken) {
-           return Objects.requireNonNull(jwtToken.getExpiresAt()).isBefore(Instant.now());
-       }
-   
-       private final UserInfoRepo useruserInfoRepo;
-       public UserDetails userDetails(String emailId){
-           return useruserInfoRepo
-                   .findByEmailId(emailId)
-                   .map(UserInfoConfig::new)
-                   .orElseThrow(()-> new UsernameNotFoundException("UserEmail: "+emailId+" does not exist"));
-       }
-   }
-   
-   ```
-   
 4. Testing:
    - [Success] Test with the same API  
    - [Failure] After creating the token , delete the user or Wait for expiry. 
