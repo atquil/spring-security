@@ -778,9 +778,16 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    - [Failure] After creating the token , **delete the user or Wait for expiry**. 
 
 ## Part 5 : `Refresh token ` using `HttpOnly` Cookie and store it in database
+1. Let's understand difference between `Access token` and `RefreshToken`
 
-1. Let's modify the `entity` to accommodate `RefreshToken`:
-   - Add `RefreshTokenEntity`
+| Topics   | Access Token                                                              | Refresh Token                                                        |
+|----------|---------------------------------------------------------------------------|----------------------------------------------------------------------|
+| Purpose  | Used to access protected resources on behalf of a user. **Authorization** | Used to obtain a new access token after the previous one has expired |
+| Duration | Short-lived (typically minutes to hours).                                 | Long-lived (typically days to weeks)                                 |
+| Storage  | Generally returned as Response Object                                     | Must be secured, thus mostly using **HTTPOnly Cookie**               |
+
+2. RefreshToken must be **saved in the database**, to verify and return the access token: ** `RefreshTokenEntity`**
+   
    ```java
       @Entity
       @Data
@@ -806,7 +813,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
       
       }
    ```
-   - Let's add `RefreshTokenEntity` to  `UserInfoEntity`
+   - Let's add the relation `RefreshTokenEntity` to  `UserInfoEntity`
    ```java
    @Data
    @NoArgsConstructor
@@ -822,7 +829,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    
    ```
-   - Let's add a `RefreshTokenRepo` for hibernate mapping
+   - Now map Entity to `RefreshTokenRepo`
    ```java
    @Repository
    public interface RefreshTokenRepo extends JpaRepository<RefreshTokenEntity, Long> {
@@ -831,7 +838,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    ```
    
 
-2. Create a `refreshTokenGenerator` method in `JwtTokenGenerator`, which will give us `refreshToken` used to pull `access_token`
+3. Create a `refreshTokenGenerator` method in `JwtTokenGenerator`. Remember, no **API access scope should be added**
 
    ```java
    @Service
@@ -842,20 +849,25 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
       //....
        public String generateRefreshToken(Authentication authentication) {
-           log.info("[JwtTokenGenerator:generateRefreshToken] Refresh token generation process started for:{}", authentication.getName());
-   
-           JwtClaimsSet claims = getJwtClaimsSet(
-                   60,
-                   ChronoUnit.DAYS,
-                   authentication,
-                   "REFRESH_TOKEN");
-           return getTokenValue(claims);
-       }
+
+        log.info("[JwtTokenGenerator:generateRefreshToken] Token Creation Started for:{}", authentication.getName());
+        
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("atquil")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(15 , ChronoUnit.DAYS))
+                .subject(authentication.getName())
+                .claim("scope", "REFRESH_TOKEN")
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
        
        // ....
    }
    ```
-2. Let's modify `getJwtTokensAfterAuthentication` method which will return accessToken as well as refreshToken. 
+
+4. **Modiy** `getJwtTokensAfterAuthentication` so that when user `sign-in`, he will receive the **refresh-token** as well, so that when **access token** expires , it get's a new access token using refresh token. 
 
    ```java
    @Service
@@ -900,7 +912,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
    ```
 
-3. Now let's return the `refresh-token` using **`HttpOnlyCookie`**
+3. We will be returning the `refresh-token` using **`HttpOnlyCookie`** so will need **HttpServletResponseObject**
 
    - Add `HttpServletReponse` in the `/sign-in` api. 
    ```java
