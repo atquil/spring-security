@@ -302,7 +302,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    Using OpenSSL (Optional)
    If you choose to generate your own keys, follow these steps:
 
-   - Create a `certs` in the resources directory and navigate to it:
+   - Create a `certs` folder in the resources directory and navigate to it:
       ```
       cd src/main/resources/certs
       ```
