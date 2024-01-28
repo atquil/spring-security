@@ -398,7 +398,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
       ```
 
-3. Let's create a `AuthController` , to receive the `api` 
+3. Let's create a `AuthController` , to receive the `sign-in` api 
 
    ```java
    @RestController
@@ -408,7 +408,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    
        private final AuthService authService;
        @PostMapping("/sign-in")
-       public ResponseEntity<?> authenticateUser(Authentication authentication, HttpServletResponse response){
+       public ResponseEntity<?> authenticateUser(Authentication authentication){
    
            return ResponseEntity.ok(authService.getJwtTokensAfterAuthentication(authentication));
        }
