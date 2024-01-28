@@ -1,6 +1,6 @@
 package com.atquil.springSecurity.repo;
 
-import com.atquil.jwtoauth2.entity.RefreshTokenEntity;
+import com.atquil.springSecurity.entity.RefreshTokenEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

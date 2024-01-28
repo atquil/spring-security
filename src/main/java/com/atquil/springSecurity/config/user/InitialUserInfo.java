@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.config.user;
 
-import com.atquil.jwtoauth2.entity.UserInfoEntity;
-import com.atquil.jwtoauth2.repo.UserInfoRepo;
+import com.atquil.springSecurity.entity.UserInfoEntity;
+import com.atquil.springSecurity.repo.UserInfoRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

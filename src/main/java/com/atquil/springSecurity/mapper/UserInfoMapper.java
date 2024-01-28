@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.mapper;
 
-import com.atquil.jwtoauth2.dto.UserRegistrationDto;
-import com.atquil.jwtoauth2.entity.UserInfoEntity;
+import com.atquil.springSecurity.dto.UserRegistrationDto;
+import com.atquil.springSecurity.entity.UserInfoEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;

@@ -1,11 +1,11 @@
 package com.atquil.springSecurity.config;
 
-import com.atquil.jwtoauth2.config.jwtAuth.JwtAccessTokenFilter;
-import com.atquil.jwtoauth2.config.jwtAuth.JwtRefreshTokenFilter;
-import com.atquil.jwtoauth2.config.jwtAuth.JwtTokenUtils;
-import com.atquil.jwtoauth2.config.user.UserInfoManagerConfig;
-import com.atquil.jwtoauth2.repo.RefreshTokenRepo;
-import com.atquil.jwtoauth2.service.LogoutHandlerService;
+import com.atquil.springSecurity.config.jwtAuth.JwtAccessTokenFilter;
+import com.atquil.springSecurity.config.jwtAuth.JwtRefreshTokenFilter;
+import com.atquil.springSecurity.config.jwtAuth.JwtTokenUtils;
+import com.atquil.springSecurity.config.user.UserInfoManagerConfig;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
+import com.atquil.springSecurity.service.LogoutHandlerService;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;

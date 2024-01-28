@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.service;
 
-import com.atquil.jwtoauth2.dto.TokenType;
-import com.atquil.jwtoauth2.repo.RefreshTokenRepo;
+import com.atquil.springSecurity.dto.TokenType;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

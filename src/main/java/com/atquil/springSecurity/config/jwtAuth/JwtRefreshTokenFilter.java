@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.config.jwtAuth;
 
-import com.atquil.jwtoauth2.config.RSAKeyRecord;
-import com.atquil.jwtoauth2.repo.RefreshTokenRepo;
+import com.atquil.springSecurity.config.RSAKeyRecord;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

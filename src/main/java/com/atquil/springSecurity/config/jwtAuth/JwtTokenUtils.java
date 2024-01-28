@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.config.jwtAuth;
 
-import com.atquil.jwtoauth2.config.user.UserInfoConfig;
-import com.atquil.jwtoauth2.repo.UserInfoRepo;
+import com.atquil.springSecurity.config.user.UserInfoConfig;
+import com.atquil.springSecurity.repo.UserInfoRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

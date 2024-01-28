@@ -1,6 +1,6 @@
 package com.atquil.springSecurity.repo;
 
-import com.atquil.jwtoauth2.entity.UserInfoEntity;
+import com.atquil.springSecurity.entity.UserInfoEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

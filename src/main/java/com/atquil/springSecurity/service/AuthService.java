@@ -1,14 +1,14 @@
 package com.atquil.springSecurity.service;
 
-import com.atquil.jwtoauth2.config.jwtAuth.JwtTokenGenerator;
-import com.atquil.jwtoauth2.dto.AuthResponseDto;
-import com.atquil.jwtoauth2.dto.TokenType;
-import com.atquil.jwtoauth2.dto.UserRegistrationDto;
-import com.atquil.jwtoauth2.entity.RefreshTokenEntity;
-import com.atquil.jwtoauth2.entity.UserInfoEntity;
-import com.atquil.jwtoauth2.mapper.UserInfoMapper;
-import com.atquil.jwtoauth2.repo.RefreshTokenRepo;
-import com.atquil.jwtoauth2.repo.UserInfoRepo;
+import com.atquil.springSecurity.config.jwtAuth.JwtTokenGenerator;
+import com.atquil.springSecurity.dto.AuthResponseDto;
+import com.atquil.springSecurity.dto.TokenType;
+import com.atquil.springSecurity.dto.UserRegistrationDto;
+import com.atquil.springSecurity.entity.RefreshTokenEntity;
+import com.atquil.springSecurity.entity.UserInfoEntity;
+import com.atquil.springSecurity.mapper.UserInfoMapper;
+import com.atquil.springSecurity.repo.RefreshTokenRepo;
+import com.atquil.springSecurity.repo.UserInfoRepo;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

@@ -1,6 +1,6 @@
 package com.atquil.springSecurity.config.user;
 
-import com.atquil.jwtoauth2.repo.UserInfoRepo;
+import com.atquil.springSecurity.repo.UserInfoRepo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

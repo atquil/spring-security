@@ -1,7 +1,7 @@
 package com.atquil.springSecurity.controller;
 
-import com.atquil.jwtoauth2.dto.UserRegistrationDto;
-import com.atquil.jwtoauth2.service.AuthService;
+import com.atquil.springSecurity.dto.UserRegistrationDto;
+import com.atquil.springSecurity.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
