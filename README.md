@@ -257,35 +257,34 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
 7. Add the Endpoints to access in `controller` package: `DashboardController.java`
-
+    - In simpler terms, **authentication is the process of checking if a user is who they claim to be**, while **principal is the user who has been verified**.
     ```java
-   @RestController
-   @RequestMapping("/api")
-   @RequiredArgsConstructor
-   public class DashboardController {
-   private final AdminService adminService;
-   
+    @RestController
+    @RequestMapping("/api")
+    @RequiredArgsConstructor
+    public class DashboardController {
+    
+        @PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN','ROLE_USER')")
         @GetMapping("/welcome-message")
         public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
             return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
-       }
-   
-       @PreAuthorize("hasRole('ROLE_MANAGER')")
-       @GetMapping("/manager-message")
-       public ResponseEntity<String> getManagerData(Principal principal){
-           return ResponseEntity.ok("Admin::"+principal.getName());
-   
-       }
-   
-       @PreAuthorize("hasRole('ROLE_ADMIN')")
-       @PostMapping("/admin-message")
-       public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
-           return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
-
         }
-
-    }
     
+        @PreAuthorize("hasRole('ROLE_MANAGER')")
+        @GetMapping("/manager-message")
+        public ResponseEntity<String> getManagerData(Principal principal){
+            return ResponseEntity.ok("Admin::"+principal.getName());
+    
+        }
+    
+        @PreAuthorize("hasRole('ROLE_ADMIN')")
+        @PostMapping("/admin-message")
+        public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
+            return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
+    
+        }
+    
+    }
     ```
 
 8. Test the API in PostMan
