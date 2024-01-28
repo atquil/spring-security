@@ -445,7 +445,7 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
    }
    ```
    
-    - **AuthService** to return the AuthResponseDto:
+5. **AuthService** to return the AuthResponseDto:
    ```java
     @Service
     @RequiredArgsConstructor
@@ -483,83 +483,67 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
 
    ```
 
-   - Now add `JwtTokenGenerator` in **jwtAuth** package
-
+6. Now add `JwtTokenGenerator` in **jwtAuth** package
+     This builder is used to create a new **JwtClaimsSet object**, which represents the **claims conveyed by a JSON Web Token (JWT)**.
    ```java
-   import java.time.temporal.ChronoUnit;    
-   
-   @Service
-   @RequiredArgsConstructor
-   @Slf4j
-   public class JwtTokenGenerator {
-   
-   
-       private final JwtEncoder jwtEncoder;
-   
-       public String generateAccessToken(Authentication authentication) {
-   
-           log.info("[JwtTokenGenerator:generateAccessToken] Token Creation Started for:{}", authentication.getName());
-   
-           Instant now = Instant.now();
-   
-           String roles = getRoles(authentication);
-   
-           String permissions = getPermissionsFromRoles(roles);
-   
-           JwtClaimsSet claims = getJwtClaimsSet(
-                   15,
-                   ChronoUnit.MINUTES,
-                   authentication,
-                   permissions);
-   
-           return getTokenValue(claims);
-       }
+    import java.time.temporal.ChronoUnit;    
        
-       private static String getRoles(Authentication authentication) {
-           return authentication.getAuthorities().stream()
-                   .map(GrantedAuthority::getAuthority)
-                   .collect(Collectors.joining(" "));
-       }
-   
-       private static JwtClaimsSet getJwtClaimsSet(int duration,
-                                                   ChronoUnit chronoUnit,
-                                                   Authentication authentication,
-                                                   String scope) {
-           return JwtClaimsSet.builder()
-                   .issuer("atquil")
-                   .issuedAt(Instant.now())
-                   .expiresAt(Instant.now().plus(duration, chronoUnit)) // Minutes
-                   .subject(authentication.getName())
-                   .claim("scope", scope) // whatever we have fixed the authority
-                   .build();
-       }
-   
-        //Jwt token encoder and decoder (below)
-       private String getTokenValue(JwtClaimsSet claims) {
-           return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-       }
-   
-       //Permissions for jwt
-       private String getPermissionsFromRoles(String roles) {
-           Set<String> permissions = new HashSet<>();
-   
-           if (roles.contains("ROLE_ADMIN")) {
-               permissions.addAll(List.of("READ", "WRITE", "DELETE"));
-           }
-           if (roles.contains("ROLE_MANAGER")) {
-               permissions.addAll(List.of("READ"));
-           }
-           if (roles.contains("ROLE_USER")) {
-               permissions.add("READ");
-           }
-   
-           return String.join(" ", permissions);
-       }
-   
-   }
+    @Service
+    @RequiredArgsConstructor
+    @Slf4j
+    public class JwtTokenGenerator {
+    
+    
+        private final JwtEncoder jwtEncoder;
+    
+        public String generateAccessToken(Authentication authentication) {
+    
+            log.info("[JwtTokenGenerator:generateAccessToken] Token Creation Started for:{}", authentication.getName());
+    
+            String roles = getRolesOfUser(authentication);
+    
+            String permissions = getPermissionsFromRoles(roles);
+    
+            JwtClaimsSet claims = JwtClaimsSet.builder()
+                    .issuer("atquil")
+                    .issuedAt(Instant.now())
+                    .expiresAt(Instant.now().plus(15 , ChronoUnit.MINUTES))
+                    .subject(authentication.getName())
+                    .claim("scope", permissions)
+                    .build();
+    
+            return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        }
+    
+        private static String getRolesOfUser(Authentication authentication) {
+            return authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.joining(" "));
+        }
+    
+        private String getPermissionsFromRoles(String roles) {
+            Set<String> permissions = new HashSet<>();
+    
+            if (roles.contains("ROLE_ADMIN")) {
+                permissions.addAll(List.of("READ", "WRITE", "DELETE"));
+            }
+            if (roles.contains("ROLE_MANAGER")) {
+                permissions.add("READ");
+            }
+            if (roles.contains("ROLE_USER")) {
+                permissions.add("READ");
+            }
+    
+            return String.join(" ", permissions);
+        }
+    
+    }
+
    ```
    
-   Let's add `token encoder` and `decoder`
+7. Let's add `token encoder` and `decoder`
+   **decoder **:  The JwtEncoder takes a **JwtClaimsSet** object as an argument and **returns a JWT as a string**. The JwtEncoder bean is created using the NimbusJwtEncoder class, which is an implementation of the JwtEncoder interface. The NimbusJwtEncoder class uses a **JWKSource object to obtain the key used to sign the JWT**. In this case, the key is obtained from an RSAKey object that is built using the rsaPublicKey() and rsaPrivateKey() methods of a rsaKeyRecord object
+   
    ```java
    @Configuration
    @EnableWebSecurity
@@ -585,63 +569,60 @@ OAuth2 and JWT serve different purposes. OAuth2 defines a protocol that specifie
        }
    }
    ```
-   - As Jwt token, looks for **`SCOPE_`** as a prefix for any **Authority**, thus we need to modify the Dashboard controller as well
+   
+8. As Jwt token, looks for **`SCOPE_`** as a prefix for any **Authority**, thus we need to modify the Dashboard controller as well
    ```java
-   @RestController
-   @RequestMapping("/api")
-   @RequiredArgsConstructor
-   public class DashboardController {
-       private final AdminService adminService;
-       @GetMapping("/welcome-message")
-       public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
-           return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
-   
-       }
-   
-       //@PreAuthorize("hasRole('ROLE_MANAGER')")
-       @PreAuthorize("hasAuthority('SCOPE_READ')")
-       @GetMapping("/manager-message")
-       public ResponseEntity<String> getManagerData(Principal principal){
-           return ResponseEntity.ok("Admin::"+principal.getName());
-       }
-   
-       //@PreAuthorize("hasRole('ROLE_ADMIN')")
-       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
-       @PostMapping("/admin-message")
-       public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
-           return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
-   
-       }
-   
-       @PreAuthorize("hasAuthority('SCOPE_WRITE')")
-       @GetMapping("/revoke-access")
-       public ResponseEntity<String> revokeAccessForUser(@RequestParam("userEmail") String userEmail){
-           return ResponseEntity.ok(adminService.revokeRefreshTokensForUser(userEmail));
-   
-       }
-   }
+    @RestController
+    @RequestMapping("/api")
+    @RequiredArgsConstructor
+    public class DashboardController {
+    
+        //@PreAuthorize("hasAnyRole('ROLE_MANAGER','ROLE_ADMIN','ROLE_USER')")
+        @PreAuthorize("hasAuthority('SCOPE_READ')")
+        @GetMapping("/welcome-message")
+        public ResponseEntity<String> getFirstWelcomeMessage(Authentication authentication){
+            return ResponseEntity.ok("Welcome to the JWT Tutorial:"+authentication.getName()+"with scope:"+authentication.getAuthorities());
+        }
+    
+        //@PreAuthorize("hasRole('ROLE_MANAGER')")
+        @PreAuthorize("hasAuthority('SCOPE_READ')")
+        @GetMapping("/manager-message")
+        public ResponseEntity<String> getManagerData(Principal principal){
+             return ResponseEntity.ok("Admin::"+principal.getName());
+        }
+    
+        //@PreAuthorize("hasRole('ROLE_ADMIN')")
+        @PreAuthorize("hasAuthority('SCOPE_WRITE')")
+        @PostMapping("/admin-message")
+        public ResponseEntity<String> getAdminData(@RequestParam("message") String message, Principal principal){
+            return ResponseEntity.ok("Admin::"+principal.getName()+" has this message:"+message);
+    
+        }
+    
+    }
    ```   
-6. Now add `/api` config again in securityConfig, which will use `ouath2` for jwt access token
+
+9. Now **modify** `/api` config which will use `ouath2` for authentication
    ```java
-       @Order(3)
-       @Bean
-       public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
-           return httpSecurity
-                   .securityMatcher(new AntPathRequestMatcher("/api/**"))
-                   .csrf(csrf->csrf.disable())
-                   .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                   .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
-                   .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                   .addFilterBefore(new JwtAccessTokenFilter(rsaKeyRecord,jwtTokenUtils), UsernamePasswordAuthenticationFilter.class)
-                   .exceptionHandling(ex -> {
-                       log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
-                       ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
-                       ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
-                   })
-                   .build();
-       }
+    @Order(2)
+    @Bean
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity httpSecurity) throws Exception{
+        return httpSecurity
+                .securityMatcher(new AntPathRequestMatcher("/api/**"))
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(withDefaults()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> {
+                    log.error("[SecurityConfig:apiSecurityFilterChain] Exception due to :{}",ex);
+                    ex.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint());
+                    ex.accessDeniedHandler(new BearerTokenAccessDeniedHandler());
+                })
+                .httpBasic(withDefaults())
+                .build();
+    }
    ```
-7. Test the API for Authentication and Authorization: 
+10. Test the API for Authentication and Authorization: 
    - Authentication using `sign-in` api: `http://localhost:8080/sign-in`  with `username` and `password` will return json output
    ```json
    {
